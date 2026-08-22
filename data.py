@@ -68,7 +68,17 @@ def number_of_unique_cows(df):
     return df.groupby('bcs')["cow_id"].nunique()
 
 
+def check_cow_ids_between_locations():
+    gs_cows = set(df[df['prefix'] == 'GS']['cow_id'].unique())
+    ym_cows = set(df[df['prefix'] == 'YM']['cow_id'].unique())
+
+    common_cows = gs_cows.intersection(ym_cows)
+    return common_cows
+
+
 if __name__ == '__main__':
+    print('name patterns: ')
     find_file_names_patterns()
     df = get_all_groups()
-    print(number_of_unique_cows(df))
+    print(f"number of unique cows: {number_of_unique_cows(df)}")
+    print(f'number common cow ids between locations: {len(check_cow_ids_between_locations())}')
