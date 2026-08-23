@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -5,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 SAVED_ADDRESS = 'meta_data'
 METADATA_PATH = 'meta_data/all_images.csv'
-OUTPUT_DIR = 'metadata/splits'
+OUTPUT_DIR = 'meta_data/splits'
 
 RANDOM_STATE = 42
 TRAIN_SIZE = 0.60
@@ -75,7 +76,6 @@ def split_cows(df, cow_df, iterations):
 
 
 def show_split_information(df, train_df, val_df, test_df):
-
     total_images = len(df)
 
     # Split ratios
@@ -117,31 +117,31 @@ def show_split_information(df, train_df, val_df, test_df):
     print('=' * 70)
 
     total_bcs = (
-        df['bcs']
-        .value_counts(normalize=True)
-        .sort_index()
-        * 100
+            df['bcs']
+            .value_counts(normalize=True)
+            .sort_index()
+            * 100
     )
 
     train_bcs = (
-        train_df['bcs']
-        .value_counts(normalize=True)
-        .reindex(total_bcs.index, fill_value=0)
-        * 100
+            train_df['bcs']
+            .value_counts(normalize=True)
+            .reindex(total_bcs.index, fill_value=0)
+            * 100
     )
 
     val_bcs = (
-        val_df['bcs']
-        .value_counts(normalize=True)
-        .reindex(total_bcs.index, fill_value=0)
-        * 100
+            val_df['bcs']
+            .value_counts(normalize=True)
+            .reindex(total_bcs.index, fill_value=0)
+            * 100
     )
 
     test_bcs = (
-        test_df['bcs']
-        .value_counts(normalize=True)
-        .reindex(total_bcs.index, fill_value=0)
-        * 100
+            test_df['bcs']
+            .value_counts(normalize=True)
+            .reindex(total_bcs.index, fill_value=0)
+            * 100
     )
 
     bcs_table = pd.DataFrame({
@@ -235,6 +235,17 @@ def plot_bcs_distribution_comparison(df, train_df, val_df, test_df):
     plt.show()
 
 
+def save_splits(train_df, val_df, test_df):
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    train_df.to_csv(os.path.join(OUTPUT_DIR, 'train.csv'), index=False)
+    val_df.to_csv(os.path.join(OUTPUT_DIR, 'val.csv'), index=False)
+    test_df.to_csv(os.path.join(OUTPUT_DIR, 'test.csv'), index=False)
+
+    print('splits saved')
+
+
+
 if __name__ == '__main__':
     df = pd.read_csv(METADATA_PATH)
     cow_df = cow_meta_data(df)
@@ -242,3 +253,5 @@ if __name__ == '__main__':
     train_df, val_df, test_df = split_cows(df, cow_df, 1000)
     plot_bcs_distribution_comparison(df, train_df, val_df, test_df)
     show_split_information(df, train_df, val_df, test_df)
+
+    save_splits(train_df, val_df, test_df)
