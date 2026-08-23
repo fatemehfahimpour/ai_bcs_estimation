@@ -28,3 +28,5 @@ def cow_meta_data(df):
 
 if __name__ == '__main__':
     df = pd.read_csv(METADATA_PATH)
+    cow_df = cow_meta_data(df)
+    print(cow_df.head(100))

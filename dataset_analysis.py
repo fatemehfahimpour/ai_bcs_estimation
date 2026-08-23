@@ -158,11 +158,47 @@ def plot_bcs_by_location(df):
     plt.show()
 
 
+def check_multiple_bcs_per_cow(df):
+    problems = []
+
+    for cow_id, group in df.groupby('cow_group_id'):
+        bcs_counts = group['bcs'].value_counts().sort_index()
+        if len(bcs_counts) > 1:
+            problems.append({
+                'cow_group_id': cow_id,
+                'number_of_bcs': len(bcs_counts),
+                'bcs_values': list(bcs_counts.index),
+                'images_per_bcs': bcs_counts.to_dict(),
+                'total_images': len(group)
+            })
+
+    return pd.DataFrame(problems)
+
+
+def remove_cows_with_multiple_bcs(df):
+    bcs_per_cow = df.groupby('cow_group_id')['bcs'].nunique()
+    problematic_cows = bcs_per_cow[bcs_per_cow > 1].index
+
+    cleaned_df = df[~df['cow_group_id'].isin(problematic_cows)].copy()
+
+    print(f'Images before removing multiple bcs cows: {len(df)}')
+    print(f'Images after removing multiple bcs cows: {len(cleaned_df)}\n')
+
+    return cleaned_df
+
+
 if __name__ == '__main__':
     print('name patterns: ')
     find_file_names_patterns()
 
     df = get_all_groups()
+    # cows in 2 or more different bcs groups
+    problems = check_multiple_bcs_per_cow(df)
+    print(f'number of cows in more than one bcs: {len(problems)}')
+    print(f'examples: {problems.head()}')
+    # removing cows with more than 1 bcs
+    df = remove_cows_with_multiple_bcs(df)
+    # save
     df.to_csv(f'{SAVE_DATA_ADDRESS}/all_images.csv', index=False)
     print(f"number of unique cows:\n {number_of_unique_cows(df)}\n")
 
@@ -170,8 +206,9 @@ if __name__ == '__main__':
     gs_cows, ym_cows, common_cows = check_cow_ids_between_locations()
     print(f'number of unique cows in GS: {len(gs_cows)}')
     print(f'number of unique cows in YM: {len(ym_cows)}')
-    print(f'number common cow ids between locations: {len(common_cows)}')
+    print(f'number common cow ids between locations: {len(common_cows)}\n')
 
+    # plots
     plot_bcs_distribution(df)
     plot_bcs_distribution_unique_cows(df)
     plot_location_distribution(df)
