@@ -6,6 +6,8 @@ import seaborn as sns
 import pandas as pd
 
 DATASET_ADDRESS = 'dataset'
+SAVE_DATA_ADDRESS = 'meta_data'
+
 # IMAGE_EXTENSION = (".jpg", ".jpeg", ".png", ".bmp")
 IMAGE_EXTENSION = (".jpg")
 
@@ -161,6 +163,7 @@ if __name__ == '__main__':
     find_file_names_patterns()
 
     df = get_all_groups()
+    df.to_csv(f'{SAVE_DATA_ADDRESS}/all_images.csv', index=False)
     print(f"number of unique cows:\n {number_of_unique_cows(df)}\n")
 
     # number of unique cows and common cows
