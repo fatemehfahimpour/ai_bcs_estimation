@@ -108,10 +108,7 @@ def show_split_information(df, train_df, val_df, test_df):
         f'Target: {TEST_SIZE * 100:.2f}%'
     )
 
-    # --------------------------------------------------
     # BCS distribution
-    # --------------------------------------------------
-
     print('\n' + '=' * 70)
     print('BCS DISTRIBUTION')
     print('=' * 70)
@@ -154,10 +151,7 @@ def show_split_information(df, train_df, val_df, test_df):
     print('\nBCS percentage distribution:')
     print(bcs_table.round(2).to_string())
 
-    # --------------------------------------------------
     # Number of cows
-    # --------------------------------------------------
-
     print('\n' + '=' * 70)
     print('COW DISTRIBUTION')
     print('=' * 70)
@@ -167,10 +161,7 @@ def show_split_information(df, train_df, val_df, test_df):
     print(f'Validation cows: {val_df["cow_group_id"].nunique()}')
     print(f'Test cows:       {test_df["cow_group_id"].nunique()}')
 
-    # --------------------------------------------------
     # Cow overlap check
-    # --------------------------------------------------
-
     train_cows = set(train_df['cow_group_id'])
     val_cows = set(val_df['cow_group_id'])
     test_cows = set(test_df['cow_group_id'])
