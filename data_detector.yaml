@@ -1,0 +1,7 @@
+path: 'C:/Users/Fatemeh/Documents/python_projects/Summer/Common/ai_bcs_estimation/detector_dataset'
+train: images/train
+val: images/val
+test: images/test
+
+names:
+  0: cow_anatomical_region
