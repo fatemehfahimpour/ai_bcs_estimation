@@ -1,0 +1,89 @@
+import json
+import os
+
+import torch
+
+from ResNet_model.ResNet_model import BCSResNet18
+from ResNet_model.ResNet_trainer import Trainer
+from preprocess import get_data_loader
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+RESULTS_PATH = "meta_data/hyperparameter_results.json"
+
+TRAINABLE_LAYERS = ["fc", "layer4_fc", "layer3_layer4_fc"]
+OPTIMIZERS = ["adam", "sgd"]
+LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3]
+EPOCHS = 30
+PATIENCE = 5
+
+
+def find_parameters():
+    train_loader, val_loader, test_loader = get_data_loader()
+    results = []
+
+    total_experiments = (len(TRAINABLE_LAYERS) * len(OPTIMIZERS) * len(LEARNING_RATES))
+    experiment_number = 0
+
+    for trainable_layers in TRAINABLE_LAYERS:
+        for optimizer_name in OPTIMIZERS:
+            for learning_rate in LEARNING_RATES:
+                experiment_number += 1
+                print(f'experiment number: {experiment_number}/{total_experiments}')
+
+                model = BCSResNet18(trainable_layers=trainable_layers)
+                model = model.to(DEVICE)
+
+                trainer = Trainer(
+                    model=model,
+                    train_loader=train_loader,
+                    val_loader=val_loader,
+                    device=DEVICE,
+                    learning_rate=learning_rate,
+                    optimizer_name=optimizer_name,
+                    criterion_name="cross_entropy",
+                    epoch=EPOCHS,
+                    patience=PATIENCE
+                )
+
+                history, best_train_loss, best_val_loss = trainer.fit()
+
+                best_val_accuracy = max(history["val_accuracy"])
+                best_epoch = (history["val_loss"].index(best_val_loss) + 1)
+
+                result = {
+                    "trainable_layers": trainable_layers,
+                    "optimizer": optimizer_name,
+                    "learning_rate": learning_rate,
+                    "best_epoch": best_epoch,
+                    "best_train_loss": best_train_loss,
+                    "best_val_loss": best_val_loss,
+                    "best_val_accuracy": best_val_accuracy
+                }
+
+                results.append(result)
+
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+    # Save results
+    os.makedirs(os.path.dirname(RESULTS_PATH), exist_ok=True)
+    with open(RESULTS_PATH, "w") as file:
+        json.dump(results, file, indent=4)
+
+    best_result = results[0]
+
+    print("BEST HYPERPARAMETERS")
+    print(f"Trainable layers: "f"{best_result['trainable_layers']}")
+    print(f"Optimizer: "f"{best_result['optimizer']}")
+    print(f"Learning rate: "f"{best_result['learning_rate']}")
+    print(f"Best epoch: "f"{best_result['best_epoch']}")
+    print(f"Best val loss: "f"{best_result['best_val_loss']:.4f}")
+    print(f"Best val accuracy:"f"{best_result['best_val_accuracy']:.4f}")
+    print(f"\nResults saved to: {RESULTS_PATH}")
+
+    return results
+
+
+if __name__ == "__main__":
+    find_parameters()
+
