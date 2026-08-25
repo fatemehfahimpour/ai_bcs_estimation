@@ -4,7 +4,7 @@ import cv2
 import matplotlib.pyplot as plt
 
 # مسیر پوشه دیتاست
-DATASET_DIR = Path("dataset")
+DATASET_DIR = Path("../dataset")
 
 
 def parse_annotation(annotation_path: Path):

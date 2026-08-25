@@ -13,8 +13,8 @@ from tqdm import tqdm
 # Configuration
 # ============================================================
 
-DATASET_DIR = Path("dataset")
-SPLITS_DIR = Path("meta_data") / "splits"
+DATASET_DIR = Path("../dataset")
+SPLITS_DIR = Path("../meta_data") / "splits"
 OUTPUT_DIR = Path("detector_dataset")
 DATA_YAML_PATH = Path("data_detector.yaml")
 
