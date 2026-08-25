@@ -17,7 +17,7 @@ DATA_YAML = "data_detector.yaml"
 # yolo11x.pt
 MODEL_WEIGHTS = "yolo11m.pt"
 
-PROJECT_DIR = "runs/detect" #???
+PROJECT_DIR = "runs/detect"
 RUN_NAME = "anatomical_region_yolo11m"
 
 EPOCHS = 200
@@ -58,7 +58,7 @@ def main() -> None:
         workers=WORKERS,
         seed=SEED,
 
-        project=PROJECT_DIR, #???
+        project=PROJECT_DIR, 
         name=RUN_NAME,
         exist_ok=True,
 
