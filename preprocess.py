@@ -1,6 +1,6 @@
 import pandas as pd
 import torch
-from mpmath.identification import transforms
+from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 
@@ -25,7 +25,7 @@ def resize():
     # ارادتمند فهیم پور
     # امضا و اثر انگشت
     # 😘😘😘😘😘😘😘😘
-    pass
+    return transforms.Resize((224, 224))
 
 
 def get_train_transform():
@@ -142,5 +142,12 @@ def get_data_loader(batch_size=BATCH_SIZE, num_workers=NUM_WORKERS):
     return (train_loader, val_loader, test_loader)
 
 
+if __name__ == '__main__':
+    # for test
+    train_loader, val_loader, test_loader = get_data_loader()
+    images, labels = next(iter(train_loader))
 
-
+    print('Images shape:', images.shape)
+    print('Labels shape:', labels.shape)
+    print('Labels:', labels)
+    print('Labels dtype:', labels.dtype)
