@@ -3,17 +3,23 @@ import os
 
 import torch
 
-from ResNet_model.ResNet_model import BCSResNet18
-from ResNet_model.ResNet_trainer import Trainer
+from ResNet_model import BCSResNet18
+from ResNet_trainer import Trainer
 from preprocess import get_data_loader
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-RESULTS_PATH = "meta_data/hyperparameter_results.json"
+RESULTS_PATH = "meta_data/resnet_hyperparameter_results.json"
+BEST_MODEL_PATH = "model_results/best_resnet18.pth"
 
-TRAINABLE_LAYERS = ["fc", "layer4_fc", "layer3_layer4_fc"]
-OPTIMIZERS = ["adam", "sgd"]
-LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3]
-EPOCHS = 30
+# TRAINABLE_LAYERS = ["fc", "layer4_fc", "layer3_layer4_fc"]
+# OPTIMIZERS = ["adam", "sgd"]
+# LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3]
+# EPOCHS = 30
+# PATIENCE = 5
+TRAINABLE_LAYERS = ["fc"]
+OPTIMIZERS = ["adam"]
+LEARNING_RATES = [1e-4]
+EPOCHS = 1
 PATIENCE = 5
 
 
@@ -23,6 +29,9 @@ def find_parameters():
 
     total_experiments = (len(TRAINABLE_LAYERS) * len(OPTIMIZERS) * len(LEARNING_RATES))
     experiment_number = 0
+
+    best_result = None
+    best_model_state = None
 
     for trainable_layers in TRAINABLE_LAYERS:
         for optimizer_name in OPTIMIZERS:
