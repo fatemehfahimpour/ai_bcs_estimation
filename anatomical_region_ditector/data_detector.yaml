@@ -1,7 +1,7 @@
-path: 'C:/Users/Fatemeh/Documents/python_projects/Summer/Common/ai_bcs_estimation/detector_dataset'
+path: ../detector_dataset   # یک پوشه به عقب برمی‌گردد تا به detector_dataset برسد
 train: images/train
 val: images/val
 test: images/test
 
 names:
-  0: cow_anatomical_region
+  0: anatomical_region
