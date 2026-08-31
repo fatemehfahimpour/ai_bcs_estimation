@@ -23,15 +23,15 @@ MODEL_WEIGHTS = "yolo11m.pt"
 
 # Training hyperparameters
 EPOCHS = 1
-IMAGE_SIZE = 768
-BATCH_SIZE = 8
+IMAGE_SIZE = 416
+BATCH_SIZE = 2
 PATIENCE = 40  # Early stopping patience (number of epochs without improvement)
 
 # Compute target: 0 (for GPU) or "cpu"
 DEVICE = "cpu"
 
 # Dataloader concurrency and random seed for reproducibility
-WORKERS = 4
+WORKERS = 0
 SEED = 42
 
 
@@ -96,10 +96,10 @@ def main() -> None:
         hsv_s=0.35,  # HSV-Saturation augmentation (fraction)
         hsv_v=0.35,  # HSV-Value/brightness augmentation (fraction)
         # Advanced composition augmentations (optional)
-        # mosaic=0.7,
-        # mixup=0.0,
-        # copy_paste=0.0,
-        # close_mosaic=15,
+        mosaic=0.0,
+        mixup=0.0,
+        copy_paste=0.0,
+        close_mosaic=15,
         # Optimization and determinism
         deterministic=True,  # Guarantees reproducible training runs
         amp=True,  # Enables Automatic Mixed Precision (FP16) for speed and memory efficiency
