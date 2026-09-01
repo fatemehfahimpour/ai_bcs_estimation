@@ -22,16 +22,16 @@ RUN_NAME = "anatomical_region_yolo11m"
 MODEL_WEIGHTS = "yolo11m.pt"
 
 # Training hyperparameters
-EPOCHS = 1
-IMAGE_SIZE = 416
-BATCH_SIZE = 2
-PATIENCE = 40  # Early stopping patience (number of epochs without improvement)
+EPOCHS = 100
+IMAGE_SIZE = 640
+BATCH_SIZE = 16
+PATIENCE = 25  # Early stopping patience (number of epochs without improvement)
 
 # Compute target: 0 (for GPU) or "cpu"
-DEVICE = "cpu"
+DEVICE = 0
 
 # Dataloader concurrency and random seed for reproducibility
-WORKERS = 0
+WORKERS = 4
 SEED = 42
 
 
