@@ -1,0 +1,50 @@
+(.venv) PS E:\ai_bcs_estimation\anatomical_region_ditector> python evaluate_detector.py
+Loading trained weights from: E:\ai_bcs_estimation\anatomical_region_ditector\runs\detect\anatomical_region_yolo11m\weights\best.pt
+
+=======================================================
+STEP 1: Standard Validation on Test Split
+=======================================================
+Ultralytics 8.4.136  Python-3.11.9 torch-2.5.1+cu121 CUDA:0 (NVIDIA GeForce RTX 2080 Ti, 11264MiB)
+YOLO11m summary (fused): 126 layers, 20,030,803 parameters, 0 gradients, 67.8 GFLOPs
+WARNING val: Slow image access detected (ping: 0.10.1 ms, read: 6.53.5 MB/s, size: 65.8 KB). Use local storage instead of remote/mounted storage for better performance. See https:/
+/docs.ultralytics.com/guides/model-training-tips
+val: Scanning E:\ai_bcs_estimation\detector_dataset\labels\test... 6555 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 6555/6555 1.1Kit/s 6.0s
+val: New cache created: E:\ai_bcs_estimation\detector_dataset\labels\test.cache
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 410/410 6.8it/s 60.0s
+                   all       6555       6556      0.999      0.999      0.995      0.769
+Speed: 0.5ms preprocess, 5.2ms inference, 0.0ms loss, 0.8ms postprocess per image
+Results saved to E:\ai_bcs_estimation\runs\detect\val                                                                                                                               
+
+================== Test Set Metrics ==================
+mAP@50:        0.9949
+mAP@50-95:     0.7687
+Mean Precision:0.9994
+Mean Recall:   0.9994
+======================================================
+
+=======================================================
+STEP 2: Detailed Visual Inspection & Worst-Crop Extraction
+=======================================================
+
+Running visual analysis and IoU scoring across 6555 test images...
+Complete IoU evaluation CSV saved to: E:\ai_bcs_estimation\anatomical_region_ditector\evaluation_results\test_set_iou_report.csv
+Exporting top 20 worst detections for visual inspection to: E:\ai_bcs_estimation\anatomical_region_ditector\evaluation_results\worst_predictions
+
+Evaluation successfully completed.
+Results and worst crop visuals stored at:
+E:\ai_bcs_estimation\anatomical_region_ditector\evaluation_results
+(.venv) PS E:\ai_bcs_estimation\anatomical_region_ditector> 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
