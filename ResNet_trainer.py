@@ -59,7 +59,10 @@ class Trainer:
         correct_predictions = 0
         total_samples = 0
 
-        for images, labels in self.train_loader:
+        for batch_idx, (images, labels) in enumerate(self.train_loader):
+            # if batch_idx == 10:
+            #     break
+
             images = images.to(self.device)
 
             labels = labels.to(self.device, dtype=torch.long)
