@@ -1,8 +1,6 @@
 import json
 import os
-
 import torch
-
 from ResNet_model import BCSResNet18
 from ResNet_trainer import Trainer
 from preprocess import get_data_loader
@@ -20,7 +18,7 @@ TRAINABLE_LAYERS = ["fc"]
 OPTIMIZERS = ["adam"]
 LEARNING_RATES = [1e-4]
 EPOCHS = 1
-PATIENCE = 5
+PATIENCE = 2
 
 
 def find_parameters():
@@ -32,6 +30,8 @@ def find_parameters():
 
     best_result = None
     best_model_state = None
+
+    best_total_val_loss = float("inf")
 
     for trainable_layers in TRAINABLE_LAYERS:
         for optimizer_name in OPTIMIZERS:
@@ -54,20 +54,25 @@ def find_parameters():
                     patience=PATIENCE
                 )
 
-                history, best_train_loss, best_val_loss = trainer.fit()
+                (history, best_experiment_train_loss, best_experiment_val_loss,
+                 best_experiment_train_accuracy, best_val_experiment_accuracy, best_experiment_model_state) = trainer.fit()
 
-                best_val_accuracy = max(history["val_accuracy"])
-                best_epoch = (history["val_loss"].index(best_val_loss) + 1)
+                best_epoch = (history["val_loss"].index(best_experiment_val_loss) + 1)
 
                 result = {
                     "trainable_layers": trainable_layers,
                     "optimizer": optimizer_name,
                     "learning_rate": learning_rate,
                     "best_epoch": best_epoch,
-                    "best_train_loss": best_train_loss,
-                    "best_val_loss": best_val_loss,
-                    "best_val_accuracy": best_val_accuracy
+                    "best_train_loss": best_experiment_train_loss,
+                    "best_val_loss": best_experiment_val_loss,
+                    "best_val_accuracy": best_val_experiment_accuracy
                 }
+
+                if best_experiment_val_loss < best_total_val_loss:
+                    best_total_val_loss = best_experiment_val_loss
+                    best_result = result
+                    best_model_state = best_experiment_model_state
 
                 results.append(result)
 
@@ -78,6 +83,25 @@ def find_parameters():
     os.makedirs(os.path.dirname(RESULTS_PATH), exist_ok=True)
     with open(RESULTS_PATH, "w") as file:
         json.dump(results, file, indent=4)
+
+    # save best model
+    os.makedirs(
+        os.path.dirname(BEST_MODEL_PATH),
+        exist_ok=True
+    )
+
+    torch.save(
+        {
+            "model_state_dict": best_model_state,
+            "trainable_layers": best_result["trainable_layers"],
+            "optimizer": best_result["optimizer"],
+            "learning_rate": best_result["learning_rate"],
+            "best_epoch": best_result["best_epoch"],
+            "best_val_loss": best_result["best_val_loss"],
+            "best_val_accuracy": best_result["best_val_accuracy"]
+        },
+        BEST_MODEL_PATH
+    )
 
     best_result = results[0]
 
@@ -95,4 +119,3 @@ def find_parameters():
 
 if __name__ == "__main__":
     find_parameters()
-

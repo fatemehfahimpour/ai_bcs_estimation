@@ -123,6 +123,9 @@ class Trainer:
         patience_counter = 0
         best_val_loss = np.inf
         best_train_loss = np.inf
+        best_train_accuracy = np.inf
+        best_val_accuracy = np.inf
+        best_model_state = None
 
         for epoch in range(self.epoch):
             train_loss, train_accuracy = self.train_one_epoch()
@@ -134,12 +137,23 @@ class Trainer:
 
             print(f"{epoch}. train loss: {train_loss}, val loss: {val_loss}")
 
+            if train_accuracy > best_train_accuracy:
+                best_train_accuracy = train_accuracy
+
+            if val_accuracy > best_val_accuracy:
+                best_val_accuracy = val_accuracy
+
             if train_loss < best_train_loss:
                 best_train_loss = train_loss
 
             if val_loss < best_val_loss - self.min_delta:
                 best_val_loss = val_loss
                 patience_counter = 0
+                best_model_state = {
+                    key: value.detach().cpu().clone()
+                    for key, value in self.model.state_dict().items()
+                }
+
             else:
                 patience_counter += 1
 
@@ -147,4 +161,4 @@ class Trainer:
                 print(f"early stopping at epoch {epoch}")
                 break
 
-        return self.history, best_train_loss, best_val_loss
+        return self.history, best_train_loss, best_val_loss, best_train_accuracy, best_val_accuracy, best_model_state
