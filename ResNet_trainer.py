@@ -126,8 +126,8 @@ class Trainer:
         patience_counter = 0
         best_val_loss = np.inf
         best_train_loss = np.inf
-        best_train_accuracy = np.inf
-        best_val_accuracy = np.inf
+        best_train_accuracy = 0.0
+        best_val_accuracy = 0.0
         best_model_state = None
 
         for epoch in range(self.epoch):

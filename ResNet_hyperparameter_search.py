@@ -151,7 +151,6 @@ def find_parameters():
         BEST_MODEL_PATH
     )
 
-    best_result = results[0]
 
     print("BEST HYPERPARAMETERS")
     print(f"Trainable layers: "f"{best_result['trainable_layers']}")
