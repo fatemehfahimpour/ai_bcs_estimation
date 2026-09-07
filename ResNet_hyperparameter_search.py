@@ -12,8 +12,10 @@ RESULTS_PATH = "meta_data/resnet_hyperparameter_results.json"
 BEST_MODEL_PATH = "model_results/best_resnet18.pth"
 
 TRAINABLE_LAYERS = ["fc", "layer4_fc", "layer3_layer4_fc"]
-OPTIMIZERS = ["adam", "sgd"]
-LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3]
+OPTIMIZERS = ["adam", "sgd", "momentum"]
+ADAM_LRS = [1e-5, 3e-5, 1e-4, 3e-4, 1e-3]
+SGD_LRS = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
+MOMENTUM_LRS = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
 EPOCHS = 30
 PATIENCE = 5
 # TRAINABLE_LAYERS = ["fc"]
@@ -39,13 +41,13 @@ def show_best_model_result(best_history):
     plt.title("Best Model - Training and Validation Loss")
     plt.legend()
     plt.grid(True)
-    plt.show()
     loss_plot_path = os.path.join(
         os.path.dirname(BEST_MODEL_PATH),
         "best_model_loss.png"
     )
 
     plt.savefig(loss_plot_path, dpi=300, bbox_inches="tight")
+    plt.show()
     plt.close()
 
     # Accuracy plot
@@ -57,7 +59,6 @@ def show_best_model_result(best_history):
     plt.title("Best Model - Training and Validation Accuracy")
     plt.legend()
     plt.grid(True)
-    plt.show()
 
     accuracy_plot_path = os.path.join(
         os.path.dirname(BEST_MODEL_PATH),
@@ -65,13 +66,14 @@ def show_best_model_result(best_history):
     )
 
     plt.savefig(accuracy_plot_path, dpi=300, bbox_inches="tight")
+    plt.show()
     plt.close()
 
 def find_parameters():
     train_loader, val_loader, test_loader = get_data_loader()
     results = []
 
-    total_experiments = (len(TRAINABLE_LAYERS) * len(OPTIMIZERS) * len(LEARNING_RATES))
+    total_experiments = (len(TRAINABLE_LAYERS) * (len(ADAM_LRS) + len(SGD_LRS) + len(MOMENTUM_LRS)))
     experiment_number = 0
 
     best_result = None
@@ -81,6 +83,15 @@ def find_parameters():
 
     for trainable_layers in TRAINABLE_LAYERS:
         for optimizer_name in OPTIMIZERS:
+
+            LEARNING_RATES = None
+            if optimizer_name == 'adam':
+                LEARNING_RATES = ADAM_LRS
+            elif optimizer_name == 'sgd':
+                LEARNING_RATES = SGD_LRS
+            elif optimizer_name == 'momentum':
+                LEARNING_RATES = MOMENTUM_LRS
+
             for learning_rate in LEARNING_RATES:
                 experiment_number += 1
                 print(f'experiment number: {experiment_number}/{total_experiments}')
