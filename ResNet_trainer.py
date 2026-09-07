@@ -138,7 +138,7 @@ class Trainer:
             self.history['val_loss'].append(val_loss)
             self.history['val_accuracy'].append(val_accuracy)
 
-            print(f"{epoch}. train loss: {train_loss}, val loss: {val_loss}")
+            print(f"{epoch}. train loss: {train_loss}, val loss: {val_loss}, train accuracy: {train_accuracy}, val accuracy: {val_accuracy}")
 
             if train_accuracy > best_train_accuracy:
                 best_train_accuracy = train_accuracy
