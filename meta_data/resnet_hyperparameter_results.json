@@ -1,0 +1,242 @@
+[
+    {
+        "trainable_layers": "fc",
+        "optimizer": "adam",
+        "learning_rate": 0.0001,
+        "best_epoch": 15,
+        "best_train_loss": 1.4281708709287226,
+        "best_val_loss": 1.4770178454759277,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "fc",
+        "optimizer": "adam",
+        "learning_rate": 0.0003,
+        "best_epoch": 12,
+        "best_train_loss": 1.4197311407524598,
+        "best_val_loss": 1.4712063365348333,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "fc",
+        "optimizer": "adam",
+        "learning_rate": 0.001,
+        "best_epoch": 10,
+        "best_train_loss": 1.4236178416876208,
+        "best_val_loss": 1.481072287803618,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "fc",
+        "optimizer": "adam",
+        "learning_rate": 0.003,
+        "best_epoch": 9,
+        "best_train_loss": 1.4664248359461407,
+        "best_val_loss": 1.4883058369539761,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.0001,
+        "best_epoch": 30,
+        "best_train_loss": 1.5226198091463494,
+        "best_val_loss": 1.5434782540218321,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.0003,
+        "best_epoch": 28,
+        "best_train_loss": 1.4749281727674566,
+        "best_val_loss": 1.5011171547956947,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.001,
+        "best_epoch": 24,
+        "best_train_loss": 1.4370559536364882,
+        "best_val_loss": 1.4724109312249654,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.003,
+        "best_epoch": 15,
+        "best_train_loss": 1.424531044481917,
+        "best_val_loss": 1.4706158969849266,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer4_fc",
+        "optimizer": "adam",
+        "learning_rate": 0.0001,
+        "best_epoch": 1,
+        "best_train_loss": 0.5338839025131614,
+        "best_val_loss": 1.4221866072842193,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer4_fc",
+        "optimizer": "adam",
+        "learning_rate": 0.0003,
+        "best_epoch": 1,
+        "best_train_loss": 0.4838599797350981,
+        "best_val_loss": 1.4345355862410565,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer4_fc",
+        "optimizer": "adam",
+        "learning_rate": 0.001,
+        "best_epoch": 1,
+        "best_train_loss": 0.6008664485170413,
+        "best_val_loss": 1.4370625450390027,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer4_fc",
+        "optimizer": "adam",
+        "learning_rate": 0.003,
+        "best_epoch": 2,
+        "best_train_loss": 0.6633523964718907,
+        "best_val_loss": 1.449568788261226,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer4_fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.0001,
+        "best_epoch": 30,
+        "best_train_loss": 1.472529110164186,
+        "best_val_loss": 1.4996989797559848,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer4_fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.0003,
+        "best_epoch": 30,
+        "best_train_loss": 1.3752487134716151,
+        "best_val_loss": 1.4262049559101335,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer4_fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.001,
+        "best_epoch": 28,
+        "best_train_loss": 1.1989394051649251,
+        "best_val_loss": 1.3689906341952691,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer4_fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.003,
+        "best_epoch": 10,
+        "best_train_loss": 1.1136708435974236,
+        "best_val_loss": 1.3750866181560717,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer3_layer4_fc",
+        "optimizer": "adam",
+        "learning_rate": 0.0001,
+        "best_epoch": 1,
+        "best_train_loss": 0.3320540993534201,
+        "best_val_loss": 1.3990769450141989,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer3_layer4_fc",
+        "optimizer": "adam",
+        "learning_rate": 0.0003,
+        "best_epoch": 1,
+        "best_train_loss": 0.3772499935644188,
+        "best_val_loss": 1.600183353938351,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer3_layer4_fc",
+        "optimizer": "adam",
+        "learning_rate": 0.001,
+        "best_epoch": 1,
+        "best_train_loss": 0.6950682207110079,
+        "best_val_loss": 1.3877459556640748,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer3_layer4_fc",
+        "optimizer": "adam",
+        "learning_rate": 0.003,
+        "best_epoch": 2,
+        "best_train_loss": 0.9333975680871377,
+        "best_val_loss": 1.3559944210297468,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer3_layer4_fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.0001,
+        "best_epoch": 30,
+        "best_train_loss": 1.4519678138301166,
+        "best_val_loss": 1.4834635956167068,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer3_layer4_fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.0003,
+        "best_epoch": 30,
+        "best_train_loss": 1.3083546913399065,
+        "best_val_loss": 1.379058283129814,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer3_layer4_fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.001,
+        "best_epoch": 19,
+        "best_train_loss": 1.1305847219220142,
+        "best_val_loss": 1.343885913857738,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    },
+    {
+        "trainable_layers": "layer3_layer4_fc",
+        "optimizer": "sgd",
+        "learning_rate": 0.003,
+        "best_epoch": 7,
+        "best_train_loss": 1.0253133435779953,
+        "best_val_loss": 1.3594854245052939,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    }
+]
