@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import torch
 from torch import nn
@@ -131,14 +133,34 @@ class Trainer:
         best_model_state = None
 
         for epoch in range(self.epoch):
+            epoch_start_time = time.time()
+
+            train_start_time = time.time()
             train_loss, train_accuracy = self.train_one_epoch()
+            train_time = time.time() - train_start_time
+
+            val_start_time = time.time()
             val_loss, val_accuracy = self.validate()
+            val_time = time.time() - val_start_time
+
+            # Total epoch time
+            epoch_time = time.time() - epoch_start_time
+
             self.history['train_loss'].append(train_loss)
             self.history['train_accuracy'].append(train_accuracy)
             self.history['val_loss'].append(val_loss)
             self.history['val_accuracy'].append(val_accuracy)
 
-            print(f"{epoch}. train loss: {train_loss}, val loss: {val_loss}, train accuracy: {train_accuracy}, val accuracy: {val_accuracy}")
+            print(
+                f"Epoch {epoch + 1}/{self.epoch} | "
+                f"Train Loss: {train_loss:.4f} | "
+                f"Val Loss: {val_loss:.4f} | "
+                f"Train Acc: {train_accuracy:.4f} | "
+                f"Val Acc: {val_accuracy:.4f} | "
+                f"Train Time: {train_time:.2f}s | "
+                f"Val Time: {val_time:.2f}s | "
+                f"Total Time: {epoch_time:.2f}s"
+            )
 
             if train_accuracy > best_train_accuracy:
                 best_train_accuracy = train_accuracy
@@ -165,3 +187,4 @@ class Trainer:
                 break
 
         return self.history, best_train_loss, best_val_loss, best_train_accuracy, best_val_accuracy, best_model_state
+
