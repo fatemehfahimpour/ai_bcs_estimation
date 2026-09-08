@@ -82,7 +82,7 @@ def find_parameters():
     train_loader, val_loader, test_loader = get_data_loader()
     results = []
 
-    total_experiments = (len(TRAINABLE_LAYERS) * (len(ADAM_LRS) + len(SGD_LRS) + len(MOMENTUM_LRS)))
+    total_experiments = (len(TRAINABLE_LAYERS) * (len(ADAM_LRS)))
     experiment_number = 0
 
     best_result = None
@@ -96,10 +96,7 @@ def find_parameters():
             LEARNING_RATES = None
             if optimizer_name == 'adam':
                 LEARNING_RATES = ADAM_LRS
-            elif optimizer_name == 'sgd':
-                LEARNING_RATES = SGD_LRS
-            elif optimizer_name == 'momentum':
-                LEARNING_RATES = MOMENTUM_LRS
+
 
             for learning_rate in LEARNING_RATES:
                 experiment_number += 1

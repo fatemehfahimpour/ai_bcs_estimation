@@ -37,7 +37,7 @@ IMAGENET_STD: List[float] = [0.229, 0.224, 0.225]
 CLASS_MAPPING: Dict[float, int] = {3.25: 0, 3.50: 1, 3.75: 2, 4.00: 3, 4.25: 4}
 INDEX_TO_BCS: Dict[int, float] = {v: k for k, v in CLASS_MAPPING.items()}
 
-BATCH_SIZE: int = 256
+BATCH_SIZE: int = 128
 NUM_CLASSES: int = len(CLASS_MAPPING)
 NUM_WORKERS: int = 4 if torch.cuda.is_available() else 0
 
