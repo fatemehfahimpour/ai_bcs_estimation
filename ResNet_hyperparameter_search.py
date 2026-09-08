@@ -11,18 +11,22 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
 
-print(f"DEVICE: {DEVICE}")
 
 RESULTS_PATH = "meta_data/resnet_hyperparameter_results.json"
 BEST_MODEL_PATH = "model_results/best_resnet18.pth"
 
-TRAINABLE_LAYERS = ["fc", "layer4_fc", "layer3_layer4_fc"]
-OPTIMIZERS = ["adam", "sgd", "momentum"]
+TRAINABLE_LAYERS = ["layer4_fc", "layer3_layer4_fc"]
+OPTIMIZERS = ["adam"]
 ADAM_LRS = [1e-5, 3e-5, 1e-4, 3e-4, 1e-3]
-SGD_LRS = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
-MOMENTUM_LRS = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
-EPOCHS = 30
-PATIENCE = 5
+EPOCHS = 100
+PATIENCE = 20
+# TRAINABLE_LAYERS = ["fc", "layer4_fc", "layer3_layer4_fc"]
+# OPTIMIZERS = ["adam", "sgd", "momentum"]
+# ADAM_LRS = [1e-5, 3e-5, 1e-4, 3e-4, 1e-3]
+# SGD_LRS = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
+# MOMENTUM_LRS = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
+# EPOCHS = 30
+# PATIENCE = 5
 # TRAINABLE_LAYERS = ["fc"]
 # OPTIMIZERS = ["adam"]
 # LEARNING_RATES = [1e-4]
@@ -184,4 +188,5 @@ def find_parameters():
 
 
 if __name__ == "__main__":
+    print(f"DEVICE: {DEVICE}")
     find_parameters()
