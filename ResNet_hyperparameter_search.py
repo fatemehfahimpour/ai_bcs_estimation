@@ -8,6 +8,11 @@ from ResNet_trainer import Trainer
 from preprocess import get_data_loader
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.cuda.is_available():
+    torch.backends.cudnn.benchmark = True
+
+print(f"DEVICE: {DEVICE}")
+
 RESULTS_PATH = "meta_data/resnet_hyperparameter_results.json"
 BEST_MODEL_PATH = "model_results/best_resnet18.pth"
 
