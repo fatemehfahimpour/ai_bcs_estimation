@@ -1,0 +1,12 @@
+[
+    {
+        "trainable_layers": "fc",
+        "optimizer": "adam",
+        "learning_rate": 0.0001,
+        "best_epoch": 1,
+        "best_train_loss": 1.716258430480957,
+        "best_val_loss": 1.6704381328394426,
+        "best_train_accuracy": Infinity,
+        "best_val_accuracy": Infinity
+    }
+]
