@@ -12,7 +12,7 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
 
 
-RESULTS_PATH = "meta_data/resnet_hyperparameter_results.json"
+RESULTS_PATH = "model_results/resnet_hyperparameter_results.json"
 BEST_MODEL_PATH = "model_results/best_resnet18.pth"
 
 TRAINABLE_LAYERS = ["layer4_fc", "layer3_layer4_fc"]

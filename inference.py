@@ -5,25 +5,22 @@ Stage 2: Crops the region and predicts the BCS score using BCSResNet18.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
 
 # Import preprocessing specs
 from preprocess import (
-    CLASS_MAPPING,
     INDEX_TO_BCS,
-    NUM_CLASSES,
     PROJECT_ROOT,
     TARGET_SIZE,
     get_val_transform,
 )
 
 # Import ResNet architecture
-from ResNet_model import BCSResNet18
+from ResNet18_classification_model.ResNet_model import BCSResNet18
 
 # Import YOLO for Stage 1 detection
 try:
