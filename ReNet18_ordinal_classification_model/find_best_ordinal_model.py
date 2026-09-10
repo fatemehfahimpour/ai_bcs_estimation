@@ -25,12 +25,264 @@ ADAM_LRS = [1e-5, 1e-4, 1e-3]
 MOMENTUM_LRS = [1e-4, 1e-3, 1e-2]
 
 
+import matplotlib.pyplot as plt
+
+
+def plot_results(results, best_result, save_dir="model_results/plots"):
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    # ============================================================
+    # 1. Best Model - Loss
+    # ============================================================
+
+    history = best_result["history"]
+
+    epochs = range(1, len(history["train_loss"]) + 1)
+
+    plt.figure(figsize=(8, 5))
+
+    plt.plot(
+        epochs,
+        history["train_loss"],
+        label="Train Loss"
+    )
+
+    plt.plot(
+        epochs,
+        history["val_loss"],
+        label="Validation Loss"
+    )
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Best Model - Loss")
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+
+    plt.savefig(
+        os.path.join(save_dir, "best_model_loss.png"),
+        dpi=300
+    )
+
+    plt.close()
+
+
+    # ============================================================
+    # 2. Best Model - Accuracy
+    # ============================================================
+
+    plt.figure(figsize=(8, 5))
+
+    plt.plot(
+        epochs,
+        history["train_accuracy"],
+        label="Train Accuracy"
+    )
+
+    plt.plot(
+        epochs,
+        history["val_accuracy"],
+        label="Validation Accuracy"
+    )
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.title("Best Model - Accuracy")
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+
+    plt.savefig(
+        os.path.join(save_dir, "best_model_accuracy.png"),
+        dpi=300
+    )
+
+    plt.close()
+
+
+    # ============================================================
+    # 3. Best Model - MAE
+    # ============================================================
+
+    plt.figure(figsize=(8, 5))
+
+    plt.plot(
+        epochs,
+        history["train_mae"],
+        label="Train MAE"
+    )
+
+    plt.plot(
+        epochs,
+        history["val_mae"],
+        label="Validation MAE"
+    )
+
+    plt.xlabel("Epoch")
+    plt.ylabel("MAE")
+    plt.title("Best Model - MAE")
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+
+    plt.savefig(
+        os.path.join(save_dir, "best_model_mae.png"),
+        dpi=300
+    )
+
+    plt.close()
+
+
+    # ============================================================
+    # Experiment labels
+    # ============================================================
+
+    experiment_labels = []
+
+    for i, result in enumerate(results):
+
+        label = (
+            f"{result['trainable_layers']}\n"
+            f"{result['optimizer']}, "
+            f"lr={result['learning_rate']}"
+        )
+
+        experiment_labels.append(label)
+
+
+    x = range(len(results))
+
+
+    # ============================================================
+    # 4. Validation Loss - All Experiments
+    # ============================================================
+
+    val_losses = [
+        result["best_val_loss"]
+        for result in results
+    ]
+
+    plt.figure(figsize=(12, 6))
+
+    plt.plot(
+        x,
+        val_losses,
+        marker="o"
+    )
+
+    plt.xticks(
+        list(x),
+        experiment_labels,
+        rotation=45,
+        ha="right"
+    )
+
+    plt.xlabel("Experiment")
+    plt.ylabel("Best Validation Loss")
+    plt.title("Validation Loss - All Experiments")
+    plt.grid(True)
+
+    plt.tight_layout()
+
+    plt.savefig(
+        os.path.join(save_dir, "experiments_validation_loss.png"),
+        dpi=300
+    )
+
+    plt.close()
+
+
+    # ============================================================
+    # 5. Validation Accuracy - All Experiments
+    # ============================================================
+
+    val_accuracies = [
+        result["best_val_accuracy"]
+        for result in results
+    ]
+
+    plt.figure(figsize=(12, 6))
+
+    plt.plot(
+        x,
+        val_accuracies,
+        marker="o"
+    )
+
+    plt.xticks(
+        list(x),
+        experiment_labels,
+        rotation=45,
+        ha="right"
+    )
+
+    plt.xlabel("Experiment")
+    plt.ylabel("Best Validation Accuracy")
+    plt.title("Validation Accuracy - All Experiments")
+    plt.grid(True)
+
+    plt.tight_layout()
+
+    plt.savefig(
+        os.path.join(save_dir, "experiments_validation_accuracy.png"),
+        dpi=300
+    )
+
+    plt.close()
+
+
+    # ============================================================
+    # 6. Validation MAE - All Experiments
+    # ============================================================
+
+    val_maes = [
+        result["best_val_mae"]
+        for result in results
+    ]
+
+    plt.figure(figsize=(12, 6))
+
+    plt.plot(
+        x,
+        val_maes,
+        marker="o"
+    )
+
+    plt.xticks(
+        list(x),
+        experiment_labels,
+        rotation=45,
+        ha="right"
+    )
+
+    plt.xlabel("Experiment")
+    plt.ylabel("Best Validation MAE")
+    plt.title("Validation MAE - All Experiments")
+    plt.grid(True)
+
+    plt.tight_layout()
+
+    plt.savefig(
+        os.path.join(save_dir, "experiments_validation_mae.png"),
+        dpi=300
+    )
+
+    plt.close()
+
+
+    print(f"\nAll plots saved to:")
+    print(save_dir)
+
 def search(train_loader, val_loader):
     results = []
 
     best_result = None
     best_model_state = None
-
     best_val_loss = float("inf")
 
     total_experiments = len(TRAINABLE_LAYERS) * (len(ADAM_LRS) + len(MOMENTUM_LRS))
@@ -216,4 +468,4 @@ def search(train_loader, val_loader):
 if __name__ == "__main__":
     train_loader, val_loader, test_loader = get_data_loader()
 
-    search(train_loader, val_loader)
+    results, best_result = search(train_loader, val_loader)
