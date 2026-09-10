@@ -1,20 +1,58 @@
-from torch import nn
+import torch
+import torch.nn as nn
 from torchvision import models
 
 
-class BSCOrdinal_ResNet18(nn.Module):
-    def __init__(self, num_classes=5, pretrained=True, dropout=0.3):
+class OrdinalResNet18(nn.Module):
+
+    def __init__(self, trainable_layers="layer4_fc", num_thresholds=4):
         super().__init__()
 
-        self.num_classes = num_classes
-        self.backbone = models.resnet18(weights=models.ResNet18_weights.DEFAULT if pretrained else None)
+        weights = models.ResNet18_Weights.DEFAULT
+        self.model = models.resnet18(weights=weights)
 
-        in_features = self.backbone.fc.in_features
-        self.backbone.fc = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_features, num_classes - 1)
+        # ResNet18 feature size = 512
+        self.model.fc = nn.Linear(
+            in_features=512,
+            out_features=num_thresholds
         )
 
+        # Freeze everything
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        self._set_trainable_layers(trainable_layers)
+
+    def _set_trainable_layers(self, trainable_layers):
+
+        if trainable_layers == "fc":
+
+            for param in self.model.fc.parameters():
+                param.requires_grad = True
+
+        elif trainable_layers == "layer4_fc":
+
+            for param in self.model.layer4.parameters():
+                param.requires_grad = True
+
+            for param in self.model.fc.parameters():
+                param.requires_grad = True
+
+        elif trainable_layers == "layer3_layer4_fc":
+
+            for param in self.model.layer3.parameters():
+                param.requires_grad = True
+
+            for param in self.model.layer4.parameters():
+                param.requires_grad = True
+
+            for param in self.model.fc.parameters():
+                param.requires_grad = True
+
+        else:
+            raise ValueError(
+                f"Unknown trainable_layers: {trainable_layers}"
+            )
+
     def forward(self, x):
-        x = self.backbone(x)
-        return x
+        return self.model(x)
