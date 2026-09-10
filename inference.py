@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from PIL import Image
 
 # Import preprocessing specs
-from preprocess import (
+from data.preprocess import (
     INDEX_TO_BCS,
     PROJECT_ROOT,
     TARGET_SIZE,

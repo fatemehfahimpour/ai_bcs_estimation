@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-DATASET_ADDRESS = 'cropped_dataset'
+DATASET_ADDRESS = '../cropped_dataset'
 SAVE_DATA_ADDRESS = 'meta_data'
 
 # IMAGE_EXTENSION = (".jpg", ".jpeg", ".png", ".bmp")

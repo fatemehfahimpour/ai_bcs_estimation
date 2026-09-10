@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+from sklearn.metrics import confusion_matrix, classification_report
 
 from ResNet_model import BCSResNet18
-from preprocess import get_data_loader
+from data.preprocess import get_data_loader
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BEST_MODEL_PATH = "model_results/best_resnet18.pth"

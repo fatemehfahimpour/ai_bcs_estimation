@@ -19,14 +19,15 @@ from torchvision import transforms
 # Paths & Project Structure
 # ============================================================
 CURRENT_DIR: Path = Path(__file__).resolve().parent
-PROJECT_ROOT: Path = (
-    CURRENT_DIR.parent if CURRENT_DIR.name != "ai_bcs_estimation" else CURRENT_DIR
-)
 
-TRAIN_PATH: Path = PROJECT_ROOT / "meta_data" / "splits" / "train.csv"
-VAL_PATH: Path = PROJECT_ROOT / "meta_data" / "splits" / "val.csv"
-TEST_PATH: Path = PROJECT_ROOT / "meta_data" / "splits" / "test.csv"
-PREVIEW_DIR: Path = PROJECT_ROOT / "augmentation_preview"
+PROJECT_ROOT: Path = CURRENT_DIR.parent
+
+TRAIN_PATH: Path = CURRENT_DIR / "meta_data" / "splits" / "train.csv"
+VAL_PATH: Path = CURRENT_DIR / "meta_data" / "splits" / "val.csv"
+TEST_PATH: Path = CURRENT_DIR / "meta_data" / "splits" / "test.csv"
+
+PREVIEW_DIR: Path = CURRENT_DIR / "augmentation_preview"
+PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
 
 # ============================================================
 # Constants & Hyperparameters
@@ -43,6 +44,23 @@ NUM_WORKERS: int = 4 if torch.cuda.is_available() else 0
 
 TARGET_SIZE: int = 224
 GRAY_FILL: Tuple[int, int, int] = (128, 128, 128)  # رنگ خاکستری خنثی
+
+
+def resolve_image_path(raw_path_str: str) -> Optional[Path]:
+    """پیدا کردن مسیر واقعی عکس با توجه به مسیرهای نسبی داخل CSV"""
+    p = Path(raw_path_str)
+    # ۱. اگر مسیر مطلق بود و وجود داشت
+    if p.is_absolute() and p.exists():
+        return p
+    # ۲. نسبت به پوشه فعلی data
+    cand1 = (CURRENT_DIR / p).resolve()
+    if cand1.exists():
+        return cand1
+    # ۳. نسبت به پوشه اصلی پروژه
+    cand2 = (PROJECT_ROOT / p).resolve()
+    if cand2.exists():
+        return cand2
+    return None
 
 
 # ============================================================
@@ -93,14 +111,6 @@ class SafeGrayRotation:
 # Transforms Pipelines
 # ============================================================
 def get_train_transform(target_size: int = TARGET_SIZE) -> transforms.Compose:
-    """خط لوله آموزشی:
-    1. مربع‌سازی با پدینگ خاکستری به اندازه ضلع بزرگ‌تر
-    2. فلیپ افقی تصادفی
-    3. چرخش بدون برش همراه با پدینگ خاکستری در فضاهای خالی
-    4. مربع‌سازی مجدد در صورت تغییر نسبت ابعاد ناشی از چرخش
-    5. ریسایز به اندازه 224x224 (سایز ورودی مدل)
-    6. تغییرات رنگی و نرمال‌سازی
-    """
     return transforms.Compose(
         [
             MakeSquareWithGrayPadding(fill=GRAY_FILL),
@@ -121,7 +131,6 @@ def get_train_transform(target_size: int = TARGET_SIZE) -> transforms.Compose:
 
 
 def get_val_transform(target_size: int = TARGET_SIZE) -> transforms.Compose:
-    """خط لوله اعتبارسنجی: مربع‌سازی با حاشیه خاکستری و ریسایز به 224x224"""
     return transforms.Compose(
         [
             MakeSquareWithGrayPadding(fill=GRAY_FILL),
@@ -154,11 +163,9 @@ class BCSDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         row = self.dataframe.iloc[index]
 
-        raw_path = Path(str(row["path"]))
-        image_path = raw_path if raw_path.is_absolute() else PROJECT_ROOT / raw_path
-
-        if not image_path.exists():
-            raise FileNotFoundError(f"Image not found at: {image_path}")
+        image_path = resolve_image_path(str(row["path"]))
+        if image_path is None or not image_path.exists():
+            raise FileNotFoundError(f"Image not found at: {row['path']}")
 
         with Image.open(image_path) as img:
             image = img.convert("RGB")
@@ -228,32 +235,35 @@ def save_augmentation_preview(
     bcs_val: str = "Unknown"
 
     if image_path is not None:
-        p = Path(image_path)
-        if p.exists():
+        p = resolve_image_path(str(image_path))
+        if p and p.exists():
             src_path = p
             bcs_val = "Manual"
 
     if src_path is None and TRAIN_PATH.exists():
         train_df = pd.read_csv(TRAIN_PATH)
         for _, row in train_df.iterrows():
-            cand = Path(str(row["path"]))
-            cand = cand if cand.is_absolute() else PROJECT_ROOT / cand
-            if cand.exists():
+            cand = resolve_image_path(str(row["path"]))
+            if cand and cand.exists():
                 src_path = cand
                 bcs_val = str(row["bcs"])
                 break
 
     if src_path is None:
-        cropped_dir = PROJECT_ROOT / "cropped_dataset"
-        imgs = list(cropped_dir.glob("**/*.jpg")) + list(cropped_dir.glob("**/*.png"))
-        if imgs:
-            src_path = imgs[0]
-            bcs_val = "Discovered"
+        for root_check in [PROJECT_ROOT, CURRENT_DIR]:
+            cropped_dir = root_check / "cropped_dataset"
+            imgs = list(cropped_dir.glob("**/*.jpg")) + list(cropped_dir.glob("**/*.png"))
+            if imgs:
+                src_path = imgs[0]
+                bcs_val = "Discovered"
+                break
 
     if src_path is None:
         print("[!] No image found to preview.")
+        print(f"    Checking TRAIN_PATH at: {TRAIN_PATH}")
         return
 
+    print(f"[*] Processing image: {src_path}")
     orig_img = Image.open(src_path).convert("RGB")
     orig_w, orig_h = orig_img.size
 
@@ -276,7 +286,7 @@ def save_augmentation_preview(
 
     full_train_transform = get_train_transform(target_size=TARGET_SIZE)
 
-    # ذخیره تک‌تک تصاویر
+    # ذخیره تک‌تک تصاویر در پوشه فعلی
     orig_img.save(output_dir / "00_original_crop.jpg")
     square_img.save(output_dir / "01_padded_to_square_raw.jpg")
 
@@ -340,5 +350,3 @@ def save_augmentation_preview(
 
 if __name__ == "__main__":
     save_augmentation_preview(num_samples=4)
-
-

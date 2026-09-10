@@ -1,8 +1,0 @@
-(.venv) PS E:\ai_bcs_estimation> python preprocess.py
---- Sanity Check ---
-Device CUDA status: True
-Device name: NVIDIA GeForce RTX 2080 Ti
-Batch images shape: torch.Size([8, 3, 224, 224])
-Batch labels shape: torch.Size([8])
-Labels tensor: tensor([1, 4, 1, 2, 3, 4, 3, 3])
-BCS Score equivalents: [3.5, 4.25, 3.5, 3.75, 4.0, 4.25, 4.0, 4.0]

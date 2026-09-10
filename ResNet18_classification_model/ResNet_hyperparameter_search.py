@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 from ResNet_model import BCSResNet18
 from ResNet_trainer import Trainer
-from preprocess import get_data_loader
+from data.preprocess import get_data_loader
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 if torch.cuda.is_available():

@@ -17,7 +17,7 @@ from tqdm import tqdm
 DATASET_DIR = Path("../dataset")
 
 # Directory containing the train/val/test split metadata CSV files
-SPLITS_DIR = Path("../meta_data") / "splits"
+SPLITS_DIR = Path("../data/meta_data") / "splits"
 
 # Output directory where the YOLO-formatted dataset will be saved
 OUTPUT_DIR = Path("detector_dataset")
