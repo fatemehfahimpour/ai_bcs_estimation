@@ -319,14 +319,8 @@ class OrdinalTrainer:
             print(
                 f"Train Loss: {train_loss:.4f} | "
                 f"Val Loss: {val_loss:.4f}"
-            )
-
-            print(
                 f"Train Acc: {train_accuracy:.4f} | "
                 f"Val Acc: {val_accuracy:.4f}"
-            )
-
-            print(
                 f"Train MAE: {train_mae:.4f} | "
                 f"Val MAE: {val_mae:.4f}"
             )
@@ -334,7 +328,7 @@ class OrdinalTrainer:
             print(
                 f"Train Time: {train_time:.2f}s | "
                 f"Val Time: {val_time:.2f}s | "
-                f"Total: {epoch_time:.2f}s"
+                f"Total time: {epoch_time:.2f}s"
             )
 
             if val_loss < (
