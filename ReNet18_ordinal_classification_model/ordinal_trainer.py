@@ -10,7 +10,8 @@ class OrdinalTrainer:
 
     def __init__(self, model, train_loader, val_loader,
                  device, learning_rate=1e-4, optimizer_name="adam",
-                 epochs=30, patience=5, min_delta=0.001):
+                 epochs=30, patience=5, min_delta=0.001,
+                 backbone_lr_ratio=0.1):  # <-- ۱. اضافه شدن این پارامتر به ورودی
 
         self.model = model
 
@@ -21,6 +22,7 @@ class OrdinalTrainer:
 
         self.learning_rate = learning_rate
         self.optimizer_name = optimizer_name
+        self.backbone_lr_ratio = backbone_lr_ratio  # <-- ۲. ذخیره کردن ضریب در کلاس
 
         self.epochs = epochs
         self.patience = patience
@@ -43,35 +45,74 @@ class OrdinalTrainer:
             "val_mae": []
         }
 
+    # def build_optimizer(self):
+    #
+    #     trainable_params = filter(
+    #         lambda p: p.requires_grad,
+    #         self.model.parameters()
+    #     )
+    #
+    #     if self.optimizer_name == "adam":
+    #
+    #         optimizer = torch.optim.Adam(
+    #             trainable_params,
+    #             lr=self.learning_rate
+    #         )
+    #
+    #     elif self.optimizer_name == "momentum":
+    #
+    #         optimizer = torch.optim.SGD(
+    #             trainable_params,
+    #             lr=self.learning_rate,
+    #             momentum=0.9
+    #         )
+    #
+    #     else:
+    #
+    #         raise ValueError(
+    #             "Unknown optimizer"
+    #         )
+    #
+    #     return optimizer
     def build_optimizer(self):
 
-        trainable_params = filter(
-            lambda p: p.requires_grad,
-            self.model.parameters()
-        )
+        # ۱. تفکیک پارامترهای لایه خروجی (fc) از لایه‌های بدنه (backbone)
+        backbone_params = []
+        head_params = []
 
+        for name, param in self.model.named_parameters():
+            if not param.requires_grad:
+                continue
+            if "fc" in name:
+                head_params.append(param)
+            else:
+                backbone_params.append(param)
+
+        # ۲. ساخت گروه‌های پارامتری (Parameter Groups) با نرخ‌های مجزا
+        param_groups = []
+        if backbone_params:
+            param_groups.append({
+                "params": backbone_params,
+                "lr": self.learning_rate * self.backbone_lr_ratio  # نرخ کمتر برای لایه‌های اول
+            })
+        if head_params:
+            param_groups.append({
+                "params": head_params,
+                "lr": self.learning_rate  # نرخ اصلی برای لایه آخر
+            })
+
+        # ۳. ارسال گروه‌ها به Optimizer به جای یک لیست ساده
         if self.optimizer_name == "adam":
-
-            optimizer = torch.optim.Adam(
-                trainable_params,
-                lr=self.learning_rate
-            )
+            optimizer = torch.optim.Adam(param_groups)
 
         elif self.optimizer_name == "momentum":
-
-            optimizer = torch.optim.SGD(
-                trainable_params,
-                lr=self.learning_rate,
-                momentum=0.9
-            )
+            optimizer = torch.optim.SGD(param_groups, momentum=0.9)
 
         else:
-
-            raise ValueError(
-                "Unknown optimizer"
-            )
+            raise ValueError(f"Unknown optimizer: {self.optimizer_name}")
 
         return optimizer
+
 
     @staticmethod
     def logits_to_class(logits):
@@ -318,9 +359,9 @@ class OrdinalTrainer:
 
             print(
                 f"Train Loss: {train_loss:.4f} | "
-                f"Val Loss: {val_loss:.4f}"
+                f"Val Loss: {val_loss:.4f} | "
                 f"Train Acc: {train_accuracy:.4f} | "
-                f"Val Acc: {val_accuracy:.4f}"
+                f"Val Acc: {val_accuracy:.4f} | "
                 f"Train MAE: {train_mae:.4f} | "
                 f"Val MAE: {val_mae:.4f}"
             )

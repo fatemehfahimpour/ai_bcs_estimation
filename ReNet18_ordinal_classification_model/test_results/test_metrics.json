@@ -1,0 +1,14 @@
+{
+    "accuracy_without_tolerance": 0.4045766590389016,
+    "accuracy_with_tolerance": 0.8756674294431731,
+    "correct_count_without_tolerance": 2652,
+    "correct_count_with_tolerance": 5740,
+    "incorrect_count_without_tolerance": 3903,
+    "incorrect_count_with_tolerance": 815,
+    "mae": 0.18203661327231122,
+    "rmse": 0.2512933744262094,
+    "max_error": 0.75,
+    "mean_error": 0.18203661327231122,
+    "test_loss": 0.3969765293698198,
+    "num_test_samples": 6555
+}

@@ -349,4 +349,7 @@ def save_augmentation_preview(
 
 
 if __name__ == "__main__":
-    save_augmentation_preview(num_samples=4)
+    if __name__ == "__main__":
+        # آدرس مستقیم عکس مورد نظرتان را اینجا قرار دهید:
+        my_image = r"E:\ai_bcs_estimation\cropped_dataset\4.0\L-i9987.jpg"  # یا مسیر نسبی
+        save_augmentation_preview(image_path=my_image, num_samples=4)

@@ -5,7 +5,7 @@ import torch
 
 from ReNet18_ordinal_classification_model.ordinal_model import OrdinalResNet18
 from ReNet18_ordinal_classification_model.ordinal_trainer import OrdinalTrainer
-from data.preprocess import get_data_loader
+from ReNet18_ordinal_classification_model.ordinal_dataset_dataloader import get_ordinal_data_loader
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -466,6 +466,6 @@ def search(train_loader, val_loader):
 
 
 if __name__ == "__main__":
-    train_loader, val_loader, test_loader = get_data_loader()
+    train_loader, val_loader, test_loader = get_ordinal_data_loader()
 
     results, best_result = search(train_loader, val_loader)

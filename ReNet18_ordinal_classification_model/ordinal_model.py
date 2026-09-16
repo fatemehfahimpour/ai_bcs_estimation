@@ -49,6 +49,20 @@ class OrdinalResNet18(nn.Module):
             for param in self.model.fc.parameters():
                 param.requires_grad = True
 
+        elif trainable_layers == "layer2_layer3_layer4_fc":
+
+            for param in self.model.layer2.parameters():
+                param.requires_grad = True
+
+            for param in self.model.layer3.parameters():
+                param.requires_grad = True
+
+            for param in self.model.layer4.parameters():
+                param.requires_grad = True
+
+            for param in self.model.fc.parameters():
+                param.requires_grad = True
+
         else:
             raise ValueError(
                 f"Unknown trainable_layers: {trainable_layers}"
