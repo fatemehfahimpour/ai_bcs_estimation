@@ -1,3 +1,10 @@
+"""Dataset Preparation Script for Object Detection (YOLO Format).
+
+This script reads image paths and Pascal VOC XML annotations using train/val/test split metadata CSVs,
+converts bounding box coordinates into YOLO normalized format (with optional square scaling),
+copies images into structured split directories, and writes the Ultralytics data configuration YAML file.
+"""
+
 from __future__ import annotations
 
 import re
@@ -14,31 +21,31 @@ from tqdm import tqdm
 # ============================================================
 
 # Directory containing the original raw dataset
-DATASET_DIR = Path("../dataset")
+DATASET_DIR: Path = Path("../dataset")
 
 # Directory containing the train/val/test split metadata CSV files
-SPLITS_DIR = Path("../data/meta_data") / "splits"
+SPLITS_DIR: Path = Path("../data/meta_data") / "splits"
 
 # Output directory where the YOLO-formatted dataset will be saved
-OUTPUT_DIR = Path("detector_dataset")
+OUTPUT_DIR: Path = Path("detector_dataset")
 
 # Output YAML configuration file path for Ultralytics YOLO training
-DATA_YAML_PATH = Path("data_detector.yaml")
+DATA_YAML_PATH: Path = Path("data_detector.yaml")
 
 # Supported image file extensions
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG"}
+IMAGE_EXTENSIONS: set[str] = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG"}
 
 # If True, expand the original XML bbox to an isotropic square scaled by SQUARE_SCALE.
 # If False, use the original rectangular bbox from the XML annotation.
-NOT_USE_XML_BBOX = True
-SQUARE_SCALE = 1.5
+NOT_USE_XML_BBOX: bool = True
+SQUARE_SCALE: float = 1.5
 
 # Detection class mapping
-CLASS_ID = 0
-CLASS_NAME = "cow_anatomical_region"
+CLASS_ID: int = 0
+CLASS_NAME: str = "cow_anatomical_region"
 
 # Seed for reproducibility
-RANDOM_SEED = 42
+RANDOM_SEED: int = 42
 
 # ============================================================
 # File discovery
@@ -329,7 +336,7 @@ def make_unique_output_stem(image_path: Path) -> str:
         image_path (Path): Path to the source image file.
 
     Returns:
-        str: Collison-safe unique filename stem.
+        str: Collision-safe unique filename stem.
     """
     parent_name = sanitize_name(image_path.parent.name)
     image_stem = sanitize_name(image_path.stem)

@@ -1,3 +1,10 @@
+"""YOLO Model Training Script for Object Detection.
+
+This script manages the end-to-end training pipeline for the YOLO object detector.
+It validates dataset configurations, manages compute device assignment (GPU/CPU fallback),
+sets up data augmentation strategies, and executes deterministic model training routines.
+"""
+
 from pathlib import Path
 import torch
 from ultralytics import YOLO
@@ -7,32 +14,32 @@ from ultralytics import YOLO
 # ============================================================
 
 # Resolve the directory where this script is located
-CURRENT_DIR = Path(__file__).resolve().parent
+CURRENT_DIR: Path = Path(__file__).resolve().parent
 
 # Path to the dataset YAML configuration file (located in the same directory)
-DATA_YAML = str(CURRENT_DIR / "data_detector.yaml")
+DATA_YAML: str = str(CURRENT_DIR / "data_detector.yaml")
 
 # Base directory for saving training runs and experiment results
-PROJECT_DIR = str(CURRENT_DIR / "runs" / "detect")
+PROJECT_DIR: str = str(CURRENT_DIR / "runs" / "detect")
 
 # Experiment run identifier
-RUN_NAME = "anatomical_region_yolo11m"
+RUN_NAME: str = "anatomical_region_yolo11m"
 
 # Base pretrained weights (options: yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt)
-MODEL_WEIGHTS = "yolo11m.pt"
+MODEL_WEIGHTS: str = "yolo11m.pt"
 
 # Training hyperparameters
-EPOCHS = 100
-IMAGE_SIZE = 640
-BATCH_SIZE = 16
-PATIENCE = 25  # Early stopping patience (number of epochs without improvement)
+EPOCHS: int = 100
+IMAGE_SIZE: int = 640
+BATCH_SIZE: int = 16
+PATIENCE: int = 25  # Early stopping patience (number of epochs without improvement)
 
 # Compute target: 0 (for GPU) or "cpu"
-DEVICE = 0
+DEVICE: int | str = 0
 
 # Dataloader concurrency and random seed for reproducibility
-WORKERS = 4
-SEED = 42
+WORKERS: int = 4
+SEED: int = 42
 
 
 def main() -> None:
@@ -55,14 +62,14 @@ def main() -> None:
     # Validate GPU availability and handle fallback
     if DEVICE != "cpu" and not torch.cuda.is_available():
         print("CUDA is not available. Switching to CPU.")
-        device = "cpu"
+        device: int | str = "cpu"
     else:
         device = DEVICE
 
     print(f"Using device: {device}")
 
     # Load pretrained YOLO architecture
-    model = YOLO(MODEL_WEIGHTS)
+    model: YOLO = YOLO(MODEL_WEIGHTS)
 
     # Execute training routine
     model.train(
@@ -106,7 +113,7 @@ def main() -> None:
     )
 
     # Display best checkpoint location
-    best_model = Path(PROJECT_DIR) / RUN_NAME / "weights" / "best.pt"
+    best_model: Path = Path(PROJECT_DIR) / RUN_NAME / "weights" / "best.pt"
 
     print("\nTraining completed.")
     print(f"Best model: {best_model.resolve()}")

@@ -1,25 +1,42 @@
-import xml.etree.ElementTree as ET
+"""
+Dataset Annotation Visualization and Cropping Inspection Tool for Cow BCS Estimation.
+
+This script provides an interactive utility to inspect Pascal VOC-style XML or HTML
+annotations alongside their corresponding raw images. It matches images with their
+annotation files, allows interactive selection of samples and bounding boxes, and
+visually displays the original image with the overlaid bounding box next to the
+cropped region of interest (ROI).
+"""
+
 from pathlib import Path
+import xml.etree.ElementTree as ET
+from typing import Any, Dict, List, Optional, Tuple
+
 import cv2
 import matplotlib.pyplot as plt
 
-# مسیر پوشه دیتاست
-DATASET_DIR = Path("../dataset")
+# Dataset directory path
+DATASET_DIR: Path = Path("../dataset")
 
 
-def parse_annotation(annotation_path: Path):
-    """
-    استخراج مختصات باکس‌ها و برچسب از فایل XML یا HTML (با ساختار Pascal VOC)
+def parse_annotation(annotation_path: Path) -> List[Dict[str, Any]]:
+    """Extract bounding box coordinates and labels from an XML or HTML annotation file (Pascal VOC format).
+
+    Args:
+        annotation_path: Path to the annotation file.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries containing object details.
     """
     try:
         tree = ET.parse(annotation_path)
         root = tree.getroot()
     except ET.ParseError as error:
-        print(f"خطا در خواندن فایل annotation: {annotation_path.name}")
+        print(f"Error reading annotation file: {annotation_path.name}")
         print(error)
         return []
 
-    boxes = []
+    boxes: List[Dict[str, Any]] = []
     for obj_idx, obj in enumerate(root.findall("object"), start=1):
         name_elem = obj.find("name")
         bndbox = obj.find("bndbox")
@@ -45,19 +62,24 @@ def parse_annotation(annotation_path: Path):
     return boxes
 
 
-def find_image_for_annotation(annotation_path: Path):
-    """
-    پیدا کردن تصویر متناظر با فایل annotation بر اساس نام فایل (stem)
+def find_image_for_annotation(annotation_path: Path) -> Optional[Path]:
+    """Find the corresponding image file for an annotation based on the file stem.
+
+    Args:
+        annotation_path: Path to the annotation file.
+
+    Returns:
+        Optional[Path]: Path to the matching image file if found, otherwise None.
     """
     image_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"]
 
-    # ۱. بررسی در همان پوشه‌ای که فایل annotation قرار دارد
+    # 1. Check in the same directory where the annotation file is located
     for ext in image_extensions:
         img_path = annotation_path.with_suffix(ext)
         if img_path.exists():
             return img_path
 
-    # ۲. بررسی در تمام زیرپوشه‌های دیتاست
+    # 2. Check across all subdirectories of the dataset
     for img_path in DATASET_DIR.rglob("*"):
         if (
             img_path.is_file()
@@ -69,9 +91,11 @@ def find_image_for_annotation(annotation_path: Path):
     return None
 
 
-def get_all_pairs():
-    """
-    پیدا کردن تمام جفت‌های معتبر (تصویر + annotation)
+def get_all_pairs() -> List[Dict[str, Path]]:
+    """Find all valid matched pairs of images and annotation files.
+
+    Returns:
+        List[Dict[str, Path]]: A list of dictionaries containing image and annotation paths.
     """
     annotation_files = sorted(
         [
@@ -81,7 +105,7 @@ def get_all_pairs():
         key=lambda x: str(x).lower()
     )
 
-    pairs = []
+    pairs: List[Dict[str, Path]] = []
     for ann_path in annotation_files:
         img_path = find_image_for_annotation(ann_path)
         if img_path is not None:
@@ -93,69 +117,84 @@ def get_all_pairs():
     return pairs
 
 
-def select_pair(pairs):
+def select_pair(pairs: List[Dict[str, Path]]) -> Optional[Dict[str, Path]]:
+    """Display the list of pairs and receive the selected pair index from the user.
+
+    Args:
+        pairs: List of available image-annotation pairs.
+
+    Returns:
+        Optional[Dict[str, Path]]: Selected pair dictionary, or None if exiting.
     """
-    نمایش لیست جفت‌ها و دریافت شماره جفت انتخابی از کاربر
-    """
-    print(f"\nتعداد کل جفت‌های یافت‌شده: {len(pairs)}\n")
+    print(f"\nTotal pairs found: {len(pairs)}\n")
     print("-" * 75)
     for idx, pair in enumerate(pairs, start=1):
         print(f"[{idx:3d}] Image: {pair['image_path'].name:<28} | Annotation: {pair['annotation_path'].name}")
     print("-" * 75)
 
     while True:
-        choice = input(f"\nشماره جفت مورد نظر را وارد کنید (1 تا {len(pairs)} - یا q برای خروج): ").strip()
+        choice = input(f"\nEnter the target pair index (1 to {len(pairs)} - or 'q' to quit): ").strip()
         if choice.lower() == "q":
             return None
         if choice.isdigit():
             idx = int(choice)
             if 1 <= idx <= len(pairs):
                 return pairs[idx - 1]
-        print(f"ورودی نامعتبر! لطفاً عددی بین 1 تا {len(pairs)} وارد کنید.")
+        print(f"Invalid input! Please enter a number between 1 and {len(pairs)}.")
 
 
-def select_box(boxes):
-    """
-    اگر در تصویر چند گاو/آبجکت باشد، شماره باکس را می‌پرسد
+def select_box(boxes: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Prompt the user to select a box index if there are multiple objects in the image.
+
+    Args:
+        boxes: List of parsed bounding boxes.
+
+    Returns:
+        Optional[Dict[str, Any]]: Selected box dictionary, or None if exiting.
     """
     if len(boxes) == 1:
         return boxes[0]
 
-    print("\nاین تصویر شامل چند باکس (آبجکت) است:")
+    print("\nThis image contains multiple boxes (objects):")
     for i, b in enumerate(boxes, start=1):
         print(f"  {i}. BCS/Label: {b['label']} | BBox: {b['bbox']}")
 
     while True:
-        choice = input(f"\nشماره باکس مورد نظر را انتخاب کنید (1 تا {len(boxes)} - یا q برای خروج): ").strip()
+        choice = input(f"\nSelect the target box index (1 to {len(boxes)} - or 'q' to quit): ").strip()
         if choice.lower() == "q":
             return None
         if choice.isdigit():
             idx = int(choice)
             if 1 <= idx <= len(boxes):
                 return boxes[idx - 1]
-        print(f"ورودی نامعتبر! لطفاً عددی بین 1 تا {len(boxes)} وارد کنید.")
+        print(f"Invalid input! Please enter a number between 1 and {len(boxes)}.")
 
 
-def visualize_pair(pair):
+def visualize_pair(pair: Dict[str, Path]) -> None:
+    """Visualize the selected image and its corresponding annotation side-by-side with the crop.
+
+    Args:
+        pair: Dictionary containing image and annotation paths.
+    """
     img_path = pair["image_path"]
     ann_path = pair["annotation_path"]
 
-    # ۱. خواندن تصویر
+    # 1. Read the image
     img_bgr = cv2.imread(str(img_path))
     if img_bgr is None:
-        print(f"خطا: تصویر {img_path.name} قابل خواندن نیست.")
+        print(f"Error: Image {img_path.name} could not be read.")
         return
 
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     h_img, w_img, _ = img_rgb.shape
 
-    # ۲. خواندن باکس‌ها
+    # 2. Read the boxes
     boxes = parse_annotation(ann_path)
     if not boxes:
-        print(f"هیچ باکسی در {ann_path.name} یافت نشد.")
+        print(f"No boxes found in {ann_path.name}.")
         return
 
-    # ۳. انتخاب باکس
+    # 3. Select a box
     selected_box = select_box(boxes)
     if selected_box is None:
         return
@@ -163,20 +202,20 @@ def visualize_pair(pair):
     xmin, ymin, xmax, ymax = selected_box["bbox"]
     label = selected_box["label"]
 
-    # ۴. کنترل خارج نشدن مختصات از ابعاد تصویر (Clipping)
+    # 4. Control coordinates to prevent going out of image dimensions (Clipping)
     xmin = max(0, min(xmin, w_img - 1))
     ymin = max(0, min(ymin, h_img - 1))
     xmax = max(1, min(xmax, w_img))
     ymax = max(1, min(ymax, h_img))
 
     if xmin >= xmax or ymin >= ymax:
-        print(f"خطا: ابعاد باکس نامعتبر است: [{xmin}, {ymin}, {xmax}, {ymax}]")
+        print(f"Error: Invalid box dimensions: [{xmin}, {ymin}, {xmax}, {ymax}]")
         return
 
-    # ۵. کراپ در حافظه (بدون ذخیره در دیسک)
+    # 5. Crop in memory (without saving to disk)
     cropped_img = img_rgb[ymin:ymax, xmin:xmax]
 
-    # ۶. رسم مستطیل و برچسب روی تصویر اصلی
+    # 6. Draw rectangle and label on the original image
     img_with_box = img_rgb.copy()
     cv2.rectangle(img_with_box, (xmin, ymin), (xmax, ymax), (255, 0, 0), thickness=3)
     cv2.putText(
@@ -190,7 +229,7 @@ def visualize_pair(pair):
         cv2.LINE_AA,
     )
 
-    # ۷. نمایش دو پنجره کنار هم
+    # 7. Display two windows side-by-side
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     axes[0].imshow(img_with_box)
@@ -205,14 +244,15 @@ def visualize_pair(pair):
     plt.show()
 
 
-def main():
+def main() -> None:
+    """Execute the main inspection script."""
     if not DATASET_DIR.exists():
-        print(f"پوشه '{DATASET_DIR.resolve()}' پیدا نشد! مطمئن شو در ریشه پروژه قرار داری.")
+        print(f"Folder '{DATASET_DIR.resolve()}' not found! Make sure you are in the project root.")
         return
 
     pairs = get_all_pairs()
     if not pairs:
-        print("هیچ جفت تصویر و XML/HTML پیدا نشد. ساختار پوشه dataset را چک کنید.")
+        print("No image and XML/HTML pairs found. Check the dataset folder structure.")
         return
 
     pair = select_pair(pairs)
