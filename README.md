@@ -225,7 +225,6 @@ ai_bcs_estimation/
 ├── .gitignore
 ├── README.md
 ├── requirements.txt
-├── report.docx
 └── test_env.py
 ```
 
