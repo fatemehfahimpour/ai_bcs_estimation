@@ -43,20 +43,28 @@ NUM_CLASSES: int = len(CLASS_MAPPING)
 NUM_WORKERS: int = 4 if torch.cuda.is_available() else 0
 
 TARGET_SIZE: int = 224
-GRAY_FILL: Tuple[int, int, int] = (128, 128, 128)  # رنگ خاکستری خنثی
+GRAY_FILL: Tuple[int, int, int] = (128, 128, 128)  # Neutral gray color
 
 
 def resolve_image_path(raw_path_str: str) -> Optional[Path]:
-    """پیدا کردن مسیر واقعی عکس با توجه به مسیرهای نسبی داخل CSV"""
+    """
+    Resolve absolute path of an image using relative paths from metadata CSV.
+
+    Args:
+        raw_path_str (str): Raw path string from dataset record.
+
+    Returns:
+        Optional[Path]: Validated Path object if found, otherwise None.
+    """
     p = Path(raw_path_str)
-    # ۱. اگر مسیر مطلق بود و وجود داشت
+    # 1. Absolute path check
     if p.is_absolute() and p.exists():
         return p
-    # ۲. نسبت به پوشه فعلی data
+    # 2. Relative to current module directory
     cand1 = (CURRENT_DIR / p).resolve()
     if cand1.exists():
         return cand1
-    # ۳. نسبت به پوشه اصلی پروژه
+    # 3. Relative to project root
     cand2 = (PROJECT_ROOT / p).resolve()
     if cand2.exists():
         return cand2
@@ -64,15 +72,34 @@ def resolve_image_path(raw_path_str: str) -> Optional[Path]:
 
 
 # ============================================================
-# Aspect-Ratio Preserving Transforms (صفر درصد کراپ)
+# Aspect-Ratio Preserving Transforms (Zero-Crop Policy)
 # ============================================================
 class MakeSquareWithGrayPadding:
-    """تبدیل تصویر به مربع با اضافه کردن حاشیه خاکستری به ضلع کوچک‌تر، بدون دست‌زدن به اندازه واقعی"""
+    """
+    Transform image into a square canvas using symmetric neutral gray padding.
 
-    def __init__(self, fill: Tuple[int, int, int] = GRAY_FILL):
-        self.fill = fill
+    Preserves original aspect ratio and dimensions without cropping content.
+    """
+
+    def __init__(self, fill: Tuple[int, int, int] = GRAY_FILL) -> None:
+        """
+        Initialize padding transformation.
+
+        Args:
+            fill (Tuple[int, int, int]): RGB fill color tuple for padding borders.
+        """
+        self.fill: Tuple[int, int, int] = fill
 
     def __call__(self, img: Image.Image) -> Image.Image:
+        """
+        Apply square padding to input PIL image.
+
+        Args:
+            img (Image.Image): Input PIL image.
+
+        Returns:
+            Image.Image: Symmetrically padded square PIL image.
+        """
         w, h = img.size
         if w == h:
             return img
@@ -91,13 +118,33 @@ class MakeSquareWithGrayPadding:
 
 
 class SafeGrayRotation:
-    """چرخش با حفظ کامل کادر (بدون برش گوشه‌ها) و پر کردن فضاهای خالی با خاکستری"""
+    """
+    Apply random rotation expanding canvas bounds and padding margins with gray.
 
-    def __init__(self, degrees: float = 10.0, fill: Tuple[int, int, int] = GRAY_FILL):
-        self.degrees = degrees
-        self.fill = fill
+    Guarantees zero-crop policy by expanding image dimensions to fit rotated content.
+    """
+
+    def __init__(self, degrees: float = 10.0, fill: Tuple[int, int, int] = GRAY_FILL) -> None:
+        """
+        Initialize safe rotation transformation.
+
+        Args:
+            degrees (float): Maximum rotation angle range [-degrees, degrees].
+            fill (Tuple[int, int, int]): RGB fill color tuple for exposed borders.
+        """
+        self.degrees: float = degrees
+        self.fill: Tuple[int, int, int] = fill
 
     def __call__(self, img: Image.Image) -> Image.Image:
+        """
+        Rotate image within uniform degree range with expanded canvas.
+
+        Args:
+            img (Image.Image): Input PIL image.
+
+        Returns:
+            Image.Image: Rotated PIL image with preserved corner boundaries.
+        """
         angle = float(torch.empty(1).uniform_(-self.degrees, self.degrees).item())
         return img.rotate(
             angle,
@@ -111,6 +158,15 @@ class SafeGrayRotation:
 # Transforms Pipelines
 # ============================================================
 def get_train_transform(target_size: int = TARGET_SIZE) -> transforms.Compose:
+    """
+    Build training augmentation pipeline with zero-crop gray letterboxing.
+
+    Args:
+        target_size (int): Final square image dimension.
+
+    Returns:
+        transforms.Compose: Composed training transformation pipeline.
+    """
     return transforms.Compose(
         [
             MakeSquareWithGrayPadding(fill=GRAY_FILL),
@@ -131,6 +187,15 @@ def get_train_transform(target_size: int = TARGET_SIZE) -> transforms.Compose:
 
 
 def get_val_transform(target_size: int = TARGET_SIZE) -> transforms.Compose:
+    """
+    Build validation preprocessing pipeline with zero-crop gray letterboxing.
+
+    Args:
+        target_size (int): Final square image dimension.
+
+    Returns:
+        transforms.Compose: Composed validation transformation pipeline.
+    """
     return transforms.Compose(
         [
             MakeSquareWithGrayPadding(fill=GRAY_FILL),
@@ -142,6 +207,15 @@ def get_val_transform(target_size: int = TARGET_SIZE) -> transforms.Compose:
 
 
 def get_test_transform(target_size: int = TARGET_SIZE) -> transforms.Compose:
+    """
+    Build test evaluation pipeline with zero-crop gray letterboxing.
+
+    Args:
+        target_size (int): Final square image dimension.
+
+    Returns:
+        transforms.Compose: Composed test transformation pipeline.
+    """
     return get_val_transform(target_size=target_size)
 
 
@@ -149,18 +223,44 @@ def get_test_transform(target_size: int = TARGET_SIZE) -> transforms.Compose:
 # Dataset Class
 # ============================================================
 class BCSDataset(Dataset):
+    """
+    PyTorch Dataset wrapper for Cow Body Condition Score (BCS) metadata records.
+    """
+
     def __init__(
         self,
         dataframe: pd.DataFrame,
         transform: Optional[transforms.Compose] = None,
     ) -> None:
+        """
+        Initialize dataset from metadata DataFrame.
+
+        Args:
+            dataframe (pd.DataFrame): Metadata DataFrame with image paths and BCS labels.
+            transform (Optional[transforms.Compose]): Image transformation pipeline.
+        """
         self.dataframe: pd.DataFrame = dataframe.reset_index(drop=True)
         self.transform: Optional[transforms.Compose] = transform
 
     def __len__(self) -> int:
+        """
+        Return total sample count in dataset.
+
+        Returns:
+            int: Number of records.
+        """
         return len(self.dataframe)
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Fetch transformed image tensor and class index label for a sample.
+
+        Args:
+            index (int): Sample record index.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: Transformed image tensor and class label tensor.
+        """
         row = self.dataframe.iloc[index]
 
         image_path = resolve_image_path(str(row["path"]))
@@ -188,6 +288,16 @@ def get_data_loader(
     batch_size: int = BATCH_SIZE,
     num_workers: int = NUM_WORKERS,
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
+    """
+    Construct high-throughput train, validation, and test PyTorch DataLoaders.
+
+    Args:
+        batch_size (int): Mini-batch size for loaders.
+        num_workers (int): Number of background data-loading subprocesses.
+
+    Returns:
+        Tuple[DataLoader, DataLoader, DataLoader]: Train, validation, and test loaders.
+    """
     train_df = pd.read_csv(TRAIN_PATH)
     val_df = pd.read_csv(VAL_PATH)
     test_df = pd.read_csv(TEST_PATH)
@@ -217,6 +327,15 @@ def get_data_loader(
 # Preview & Visualization Utility
 # ============================================================
 def denormalize_tensor(tensor: torch.Tensor) -> np.ndarray:
+    """
+    Denormalize ImageNet-scaled PyTorch tensor back to [0, 1] RGB NumPy array.
+
+    Args:
+        tensor (torch.Tensor): Normalized input tensor of shape (3, H, W).
+
+    Returns:
+        np.ndarray: Denormalized image array of shape (H, W, 3).
+    """
     tensor_copy = tensor.clone().detach().cpu()
     mean = torch.tensor(IMAGENET_MEAN).view(3, 1, 1)
     std = torch.tensor(IMAGENET_STD).view(3, 1, 1)
@@ -230,6 +349,14 @@ def save_augmentation_preview(
     num_samples: int = 4,
     output_dir: Path = PREVIEW_DIR,
 ) -> None:
+    """
+    Generate and save step-by-step visual comparison of augmentation pipeline.
+
+    Args:
+        image_path (Optional[Union[str, Path]]): Specific input image path.
+        num_samples (int): Number of augmented variants to render.
+        output_dir (Path): Destination directory for generated preview images.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     src_path: Optional[Path] = None
     bcs_val: str = "Unknown"
@@ -267,12 +394,12 @@ def save_augmentation_preview(
     orig_img = Image.open(src_path).convert("RGB")
     orig_w, orig_h = orig_img.size
 
-    # مرحله ۱: پدینگ خاکستری برای رساندن ضلع کوچک به بزرگ
+    # Step 1: Gray padding to match shorter dimension to larger dimension
     square_transform = MakeSquareWithGrayPadding(fill=GRAY_FILL)
     square_img = square_transform(orig_img)
     sq_w, sq_h = square_img.size
 
-    # خط لوله تصویری PIL برای مشاهده چرخش و پدینگ بدون نرمال‌سازی
+    # PIL pilot pipeline to visualize rotation and padding before tensor normalization
     aug_pilot = transforms.Compose(
         [
             MakeSquareWithGrayPadding(fill=GRAY_FILL),
@@ -286,7 +413,7 @@ def save_augmentation_preview(
 
     full_train_transform = get_train_transform(target_size=TARGET_SIZE)
 
-    # ذخیره تک‌تک تصاویر در پوشه فعلی
+    # Save intermediate image artifacts
     orig_img.save(output_dir / "00_original_crop.jpg")
     square_img.save(output_dir / "01_padded_to_square_raw.jpg")
 
@@ -300,7 +427,7 @@ def save_augmentation_preview(
         t_img = full_train_transform(orig_img)
         tensor_views.append(t_img)
 
-    # مقایسه بصری
+    # Visual grid comparison
     fig, axes = plt.subplots(2, 4, figsize=(16, 8))
     fig.suptitle(
         f"Strict Zero-Crop Pipeline (Pure Gray Padded) | BCS: {bcs_val}\n"
@@ -350,6 +477,6 @@ def save_augmentation_preview(
 
 if __name__ == "__main__":
     if __name__ == "__main__":
-        # آدرس مستقیم عکس مورد نظرتان را اینجا قرار دهید:
-        my_image = r"E:\ai_bcs_estimation\cropped_dataset\4.0\L-i9987.jpg"  # یا مسیر نسبی
+        # Set absolute or relative path to target test image:
+        my_image = r"E:\ai_bcs_estimation\cropped_dataset\4.0\L-i9987.jpg"
         save_augmentation_preview(image_path=my_image, num_samples=4)

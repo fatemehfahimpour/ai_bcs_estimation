@@ -1,35 +1,57 @@
+"""
+Grid Search and Hyperparameter Tuning for Ordinal ResNet18.
+
+Iterates over predefined configurations of trainable layer depths, optimizers,
+and learning rates. Evaluates performance metrics, logs experiment histories,
+generates comparison plots, and saves the best model checkpoint and summary results.
+"""
+
 import json
 import os
+from typing import Any, Dict, List, Tuple
 
+import matplotlib.pyplot as plt
 import torch
+from torch.utils.data import DataLoader
 
+from ReNet18_ordinal_classification_model.ordinal_dataset_dataloader import get_ordinal_data_loader
 from ReNet18_ordinal_classification_model.ordinal_model import OrdinalResNet18
 from ReNet18_ordinal_classification_model.ordinal_trainer import OrdinalTrainer
-from ReNet18_ordinal_classification_model.ordinal_dataset_dataloader import get_ordinal_data_loader
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-TRAIN_CSV = "../meta_data/splits/train.csv"
-VAL_CSV = "../meta_data/splits/val.csv"
+TRAIN_CSV: str = "../meta_data/splits/train.csv"
+VAL_CSV: str = "../meta_data/splits/val.csv"
 
-MODEL_PATH = "model_results/best_ordinal_resnet18.pth"
-RESULT_PATH = "model_results/ordinal_training_result.json"
+MODEL_PATH: str = "model_results/best_ordinal_resnet18.pth"
+RESULT_PATH: str = "model_results/ordinal_training_result.json"
 
-EPOCHS = 30
-PATIENCE = 5
-MIN_DELTA = 0.001
+EPOCHS: int = 30
+PATIENCE: int = 5
+MIN_DELTA: float = 0.001
 
-TRAINABLE_LAYERS = ["fc", "layer4_fc", "layer3_layer4_fc"]
-OPTIMIZERS = ["adam", "momentum"]
-ADAM_LRS = [1e-5, 1e-4, 1e-3]
-MOMENTUM_LRS = [1e-4, 1e-3, 1e-2]
-
-
-import matplotlib.pyplot as plt
+TRAINABLE_LAYERS: List[str] = ["fc", "layer4_fc", "layer3_layer4_fc"]
+OPTIMIZERS: List[str] = ["adam", "momentum"]
+ADAM_LRS: List[float] = [1e-5, 1e-4, 1e-3]
+MOMENTUM_LRS: List[float] = [1e-4, 1e-3, 1e-2]
 
 
-def plot_results(results, best_result, save_dir="model_results/plots"):
+def plot_results(
+    results: List[Dict[str, Any]],
+    best_result: Dict[str, Any],
+    save_dir: str = "model_results/plots",
+) -> None:
+    """
+    Generate and save evaluation plots for the best model and experiment comparisons.
 
+    Creates separate line plots for the best model's training and validation metrics
+    (Loss, Accuracy, MAE) over epochs, as well as comparison curves across all experiments.
+
+    Args:
+        results (List[Dict[str, Any]]): Metrics summary for each executed experiment.
+        best_result (Dict[str, Any]): Dictionary containing configuration and history of the best run.
+        save_dir (str): Directory where generated plot images are saved. Defaults to "model_results/plots".
+    """
     os.makedirs(save_dir, exist_ok=True)
 
     # ============================================================
@@ -45,13 +67,13 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
     plt.plot(
         epochs,
         history["train_loss"],
-        label="Train Loss"
+        label="Train Loss",
     )
 
     plt.plot(
         epochs,
         history["val_loss"],
-        label="Validation Loss"
+        label="Validation Loss",
     )
 
     plt.xlabel("Epoch")
@@ -64,11 +86,10 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
 
     plt.savefig(
         os.path.join(save_dir, "best_model_loss.png"),
-        dpi=300
+        dpi=300,
     )
 
     plt.close()
-
 
     # ============================================================
     # 2. Best Model - Accuracy
@@ -79,13 +100,13 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
     plt.plot(
         epochs,
         history["train_accuracy"],
-        label="Train Accuracy"
+        label="Train Accuracy",
     )
 
     plt.plot(
         epochs,
         history["val_accuracy"],
-        label="Validation Accuracy"
+        label="Validation Accuracy",
     )
 
     plt.xlabel("Epoch")
@@ -98,11 +119,10 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
 
     plt.savefig(
         os.path.join(save_dir, "best_model_accuracy.png"),
-        dpi=300
+        dpi=300,
     )
 
     plt.close()
-
 
     # ============================================================
     # 3. Best Model - MAE
@@ -113,13 +133,13 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
     plt.plot(
         epochs,
         history["train_mae"],
-        label="Train MAE"
+        label="Train MAE",
     )
 
     plt.plot(
         epochs,
         history["val_mae"],
-        label="Validation MAE"
+        label="Validation MAE",
     )
 
     plt.xlabel("Epoch")
@@ -132,20 +152,18 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
 
     plt.savefig(
         os.path.join(save_dir, "best_model_mae.png"),
-        dpi=300
+        dpi=300,
     )
 
     plt.close()
-
 
     # ============================================================
     # Experiment labels
     # ============================================================
 
-    experiment_labels = []
+    experiment_labels: List[str] = []
 
     for i, result in enumerate(results):
-
         label = (
             f"{result['trainable_layers']}\n"
             f"{result['optimizer']}, "
@@ -154,9 +172,7 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
 
         experiment_labels.append(label)
 
-
     x = range(len(results))
-
 
     # ============================================================
     # 4. Validation Loss - All Experiments
@@ -172,14 +188,14 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
     plt.plot(
         x,
         val_losses,
-        marker="o"
+        marker="o",
     )
 
     plt.xticks(
         list(x),
         experiment_labels,
         rotation=45,
-        ha="right"
+        ha="right",
     )
 
     plt.xlabel("Experiment")
@@ -191,11 +207,10 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
 
     plt.savefig(
         os.path.join(save_dir, "experiments_validation_loss.png"),
-        dpi=300
+        dpi=300,
     )
 
     plt.close()
-
 
     # ============================================================
     # 5. Validation Accuracy - All Experiments
@@ -211,14 +226,14 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
     plt.plot(
         x,
         val_accuracies,
-        marker="o"
+        marker="o",
     )
 
     plt.xticks(
         list(x),
         experiment_labels,
         rotation=45,
-        ha="right"
+        ha="right",
     )
 
     plt.xlabel("Experiment")
@@ -230,11 +245,10 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
 
     plt.savefig(
         os.path.join(save_dir, "experiments_validation_accuracy.png"),
-        dpi=300
+        dpi=300,
     )
 
     plt.close()
-
 
     # ============================================================
     # 6. Validation MAE - All Experiments
@@ -250,14 +264,14 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
     plt.plot(
         x,
         val_maes,
-        marker="o"
+        marker="o",
     )
 
     plt.xticks(
         list(x),
         experiment_labels,
         rotation=45,
-        ha="right"
+        ha="right",
     )
 
     plt.xlabel("Experiment")
@@ -269,20 +283,40 @@ def plot_results(results, best_result, save_dir="model_results/plots"):
 
     plt.savefig(
         os.path.join(save_dir, "experiments_validation_mae.png"),
-        dpi=300
+        dpi=300,
     )
 
     plt.close()
 
-
-    print(f"\nAll plots saved to:")
+    print("\nAll plots saved to:")
     print(save_dir)
 
-def search(train_loader, val_loader):
-    results = []
 
-    best_result = None
-    best_model_state = None
+def search(
+    train_loader: DataLoader,
+    val_loader: DataLoader,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Execute grid search across trainable layers, optimizers, and learning rates.
+
+    Trains candidate configurations, monitors validation performance, saves
+    the best checkpoint to disk, and dumps aggregate results to a JSON file.
+
+    Args:
+        train_loader (DataLoader): DataLoader for the training dataset.
+        val_loader (DataLoader): DataLoader for the validation dataset.
+
+    Returns:
+        Tuple[List[Dict[str, Any]], Dict[str, Any]]: List of all experiment result dictionaries
+            and the dictionary corresponding to the best configuration found.
+
+    Raises:
+        ValueError: If an unexpected optimizer name is encountered.
+    """
+    results: List[Dict[str, Any]] = []
+
+    best_result: Dict[str, Any] = None
+    best_model_state: Any = None
     best_val_loss = float("inf")
 
     total_experiments = len(TRAINABLE_LAYERS) * (len(ADAM_LRS) + len(MOMENTUM_LRS))
@@ -295,9 +329,9 @@ def search(train_loader, val_loader):
                 learning_rates = ADAM_LRS
             elif optimizer == "momentum":
                 learning_rates = MOMENTUM_LRS
-
             else:
                 raise ValueError(f"Unknown optimizer: {optimizer}")
+
             for learning_rate in learning_rates:
                 print(f"experiment: {current_experience}/{total_experiments}")
                 print(f"trainable_layers: {trainable_layers} | optimizer: {optimizer} | learning_rate: {learning_rate}")
@@ -305,7 +339,7 @@ def search(train_loader, val_loader):
 
                 model = OrdinalResNet18(
                     trainable_layers=trainable_layers,
-                    num_thresholds=4
+                    num_thresholds=4,
                 )
                 model = model.to(DEVICE)
 
@@ -318,12 +352,12 @@ def search(train_loader, val_loader):
                     optimizer_name=optimizer,
                     epochs=EPOCHS,
                     patience=PATIENCE,
-                    min_delta=MIN_DELTA
+                    min_delta=MIN_DELTA,
                 )
 
                 result = trainer.fit()
 
-                experiment_result = {
+                experiment_result: Dict[str, Any] = {
                     "trainable_layers":
                         trainable_layers,
                     "optimizer":
@@ -345,7 +379,7 @@ def search(train_loader, val_loader):
                     "best_val_mae":
                         result["best_val_mae"],
                     "history":
-                        result["history"]
+                        result["history"],
                 }
 
                 results.append(experiment_result)
@@ -369,8 +403,7 @@ def search(train_loader, val_loader):
                         torch.cuda.empty_cache()
 
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-    checkpoint = {
-
+    checkpoint: Dict[str, Any] = {
         "model_state_dict":
             best_model_state,
 
@@ -393,29 +426,29 @@ def search(train_loader, val_loader):
             best_result["best_val_accuracy"],
 
         "best_val_mae":
-            best_result["best_val_mae"]
+            best_result["best_val_mae"],
     }
 
     torch.save(
         checkpoint,
-        MODEL_PATH
+        MODEL_PATH,
     )
 
-    search_result = {
+    search_result: Dict[str, Any] = {
         "best_result":
             best_result,
         "all_results":
-            results
+            results,
     }
 
     with open(
             RESULT_PATH,
-            "w"
+            "w",
     ) as f:
         json.dump(
             search_result,
             f,
-            indent=4
+            indent=4,
         )
 
     print(

@@ -1,44 +1,63 @@
-import os
+"""
+Dataset Exploratory Data Analysis and Preprocessing Module.
+
+Parses cropped dataset directories categorized by BCS (Body Condition Score),
+extracts metadata (cow IDs, location prefixes, image IDs), validates labeling consistency
+(e.g., cows assigned to conflicting BCS classes), and generates visual distributions.
+"""
+
 from collections import Counter
+import os
 import re
+from typing import Set, Tuple
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
 
-DATASET_ADDRESS = '../cropped_dataset'
-SAVE_DATA_ADDRESS = 'meta_data'
+# Directory paths
+DATASET_ADDRESS: str = '../cropped_dataset'
+SAVE_DATA_ADDRESS: str = 'meta_data'
 
-# IMAGE_EXTENSION = (".jpg", ".jpeg", ".png", ".bmp")
-IMAGE_EXTENSION = (".jpg")
+# Supported image extension filter
+IMAGE_EXTENSION: str = ".jpg"
 
 
-def find_file_names_patterns():
-    patterns = Counter()
+def find_file_names_patterns() -> None:
+    """
+    Extract and display naming pattern frequencies across BCS folders.
+
+    Replaces digit sequences in filenames with 'N' to identify structural conventions.
+    """
+    patterns: Counter = Counter()
 
     for bcs in ['3.25', '3.5', '3.75', '4.0', '4.25']:
-
         folder_path = os.path.join(DATASET_ADDRESS, bcs)
 
         for file_name in os.listdir(folder_path):
-
             if not file_name.lower().endswith('.jpg'):
                 continue
 
             name = os.path.splitext(file_name)[0]
 
-            # replace numbers with N
+            # Replace digit sequences with 'N' to standardize patterns
             pattern = re.sub(r'\d+', 'N', name)
-
             patterns[pattern] += 1
 
     for pattern, count in patterns.most_common(50):
         print(f'{pattern:30} {count}')
 
 
-def get_all_groups():
+def get_all_groups() -> pd.DataFrame:
+    """
+    Scan dataset folders, parse file metadata, and construct metadata DataFrame.
+
+    Returns:
+        pd.DataFrame: Structured metadata containing file names, BCS, prefixes,
+                      cow IDs, image IDs, unique cow group IDs, and full paths.
+    """
     records = []
     bcs_values = ['3.25', '3.5', '3.75', '4.0', '4.25']
-
     bad_file_format = []
 
     for bcs in bcs_values:
@@ -57,20 +76,36 @@ def get_all_groups():
                         'cow_group_id': f'{parts[0]}_{parts[1]}',
                         'path': os.path.join(folder_path, file_name)
                     })
-
                 else:
-
                     bad_file_format.append(file_name)
 
     print(f"number of images with no cow id: {len(bad_file_format)}\n")
     return pd.DataFrame(records)
 
 
-def number_of_unique_cows(df):
+def number_of_unique_cows(df: pd.DataFrame) -> pd.Series:
+    """
+    Calculate the count of distinct cow IDs per BCS category.
+
+    Args:
+        df (pd.DataFrame): Dataset metadata DataFrame.
+
+    Returns:
+        pd.Series: Unique cow counts indexed by BCS.
+    """
     return df.groupby('bcs')["cow_id"].nunique()
 
 
-def check_cow_ids_between_locations():
+def check_cow_ids_between_locations() -> Tuple[Set[str], Set[str], Set[str]]:
+    """
+    Compare cow IDs across distinct farm locations (e.g., GS and YM).
+
+    Returns:
+        Tuple[Set[str], Set[str], Set[str]]:
+            - gs_cows: Set of unique cow IDs from GS location.
+            - ym_cows: Set of unique cow IDs from YM location.
+            - common_cows: Set of shared cow IDs across both locations.
+    """
     gs_cows = set(df[df['prefix'] == 'GS']['cow_id'].unique())
     ym_cows = set(df[df['prefix'] == 'YM']['cow_id'].unique())
 
@@ -78,8 +113,13 @@ def check_cow_ids_between_locations():
     return gs_cows, ym_cows, common_cows
 
 
-def plot_bcs_distribution(df):
-    # number of images for each bcs
+def plot_bcs_distribution(df: pd.DataFrame) -> None:
+    """
+    Plot total image count distribution across BCS classes.
+
+    Args:
+        df (pd.DataFrame): Dataset metadata DataFrame.
+    """
     plt.figure(figsize=(8, 5))
 
     sns.countplot(
@@ -96,7 +136,13 @@ def plot_bcs_distribution(df):
     plt.show()
 
 
-def plot_bcs_distribution_unique_cows(df):
+def plot_bcs_distribution_unique_cows(df: pd.DataFrame) -> None:
+    """
+    Plot unique cow subject count distribution across BCS classes.
+
+    Args:
+        df (pd.DataFrame): Dataset metadata DataFrame.
+    """
     cow_counts = (
         df.groupby('bcs')['cow_group_id']
         .nunique()
@@ -120,8 +166,13 @@ def plot_bcs_distribution_unique_cows(df):
     plt.show()
 
 
-def plot_location_distribution(df):
-    # Number of images and cows in each location.
+def plot_location_distribution(df: pd.DataFrame) -> None:
+    """
+    Plot total image counts grouped by farm location prefix.
+
+    Args:
+        df (pd.DataFrame): Dataset metadata DataFrame.
+    """
     plt.figure(figsize=(7, 5))
 
     sns.countplot(
@@ -137,9 +188,13 @@ def plot_location_distribution(df):
     plt.show()
 
 
-def plot_bcs_by_location(df):
-    # BCS distribution separately for GS and YM.
+def plot_bcs_by_location(df: pd.DataFrame) -> None:
+    """
+    Plot BCS distributions segmented by location prefix.
 
+    Args:
+        df (pd.DataFrame): Dataset metadata DataFrame.
+    """
     plt.figure(figsize=(9, 5))
 
     sns.countplot(
@@ -158,7 +213,16 @@ def plot_bcs_by_location(df):
     plt.show()
 
 
-def check_multiple_bcs_per_cow(df):
+def check_multiple_bcs_per_cow(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Identify individual cow subjects assigned to multiple conflicting BCS classes.
+
+    Args:
+        df (pd.DataFrame): Dataset metadata DataFrame.
+
+    Returns:
+        pd.DataFrame: Summary table of cows associated with conflicting labels.
+    """
     problems = []
 
     for cow_id, group in df.groupby('cow_group_id'):
@@ -175,7 +239,16 @@ def check_multiple_bcs_per_cow(df):
     return pd.DataFrame(problems)
 
 
-def remove_cows_with_multiple_bcs(df):
+def remove_cows_with_multiple_bcs(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Filter out all images belonging to cows labeled with multiple BCS values.
+
+    Args:
+        df (pd.DataFrame): Input metadata DataFrame.
+
+    Returns:
+        pd.DataFrame: Cleaned metadata DataFrame with consistent per-cow BCS labels.
+    """
     bcs_per_cow = df.groupby('cow_group_id')['bcs'].nunique()
     problematic_cows = bcs_per_cow[bcs_per_cow > 1].index
 
@@ -192,23 +265,26 @@ if __name__ == '__main__':
     find_file_names_patterns()
 
     df = get_all_groups()
-    # cows in 2 or more different bcs groups
+
+    # Identify cows assigned to two or more conflicting BCS classes
     problems = check_multiple_bcs_per_cow(df)
     print(f'number of cows in more than one bcs: {len(problems)}')
     print(f'examples: {problems.head()}')
-    # removing cows with more than 1 bcs
+
+    # Remove inconsistent subjects
     df = remove_cows_with_multiple_bcs(df)
-    # save
+
+    # Export clean metadata
     df.to_csv(f'{SAVE_DATA_ADDRESS}/all_images.csv', index=False)
     print(f"number of unique cows:\n {number_of_unique_cows(df)}\n")
 
-    # number of unique cows and common cows
+    # Evaluate overlap between locations
     gs_cows, ym_cows, common_cows = check_cow_ids_between_locations()
     print(f'number of unique cows in GS: {len(gs_cows)}')
     print(f'number of unique cows in YM: {len(ym_cows)}')
     print(f'number common cow ids between locations: {len(common_cows)}\n')
 
-    # plots
+    # Generate distribution plots
     plot_bcs_distribution(df)
     plot_bcs_distribution_unique_cows(df)
     plot_location_distribution(df)

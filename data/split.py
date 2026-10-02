@@ -1,21 +1,39 @@
+"""
+Subject-Level Dataset Stratification and Splitting Module.
+
+Performs stratified train/validation/test splitting at the unique cow subject level
+to prevent data leakage across subsets, optimizes split ratios and class balance
+via iterative search, generates statistical summaries, and exports split CSV files.
+"""
+
 import os
+from typing import Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 
-SAVED_ADDRESS = 'meta_data'
-METADATA_PATH = 'meta_data/all_images.csv'
-OUTPUT_DIR = 'meta_data/splits'
+SAVED_ADDRESS: str = 'meta_data'
+METADATA_PATH: str = 'meta_data/all_images.csv'
+OUTPUT_DIR: str = 'meta_data/splits'
 
-RANDOM_STATE = 42
-TRAIN_SIZE = 0.60
-VAL_SIZE = 0.25
-TEST_SIZE = 0.15
+RANDOM_STATE: int = 42
+TRAIN_SIZE: float = 0.60
+VAL_SIZE: float = 0.25
+TEST_SIZE: float = 0.15
 
 
-def cow_meta_data(df):
-    # image of same cows would be in a group
+def cow_meta_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aggregate image-level metadata into unique cow subject-level records.
+
+    Args:
+        df (pd.DataFrame): Image metadata DataFrame.
+
+    Returns:
+        pd.DataFrame: Aggregated DataFrame grouped by unique cow subject ID.
+    """
     cow_df = df.groupby(['cow_group_id']).agg(
         prefix=('prefix', 'first'),
         cow_id=('cow_id', 'first'),
@@ -25,7 +43,24 @@ def cow_meta_data(df):
     return cow_df
 
 
-def calculate_split_score(df, train_df, val_df, test_df):
+def calculate_split_score(
+    df: pd.DataFrame,
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame
+) -> float:
+    """
+    Evaluate quality of split based on subset ratio deviations and BCS class distribution errors.
+
+    Args:
+        df (pd.DataFrame): Complete dataset DataFrame.
+        train_df (pd.DataFrame): Training subset DataFrame.
+        val_df (pd.DataFrame): Validation subset DataFrame.
+        test_df (pd.DataFrame): Testing subset DataFrame.
+
+    Returns:
+        float: Combined penalty error score (lower values indicate better splits).
+    """
     train_ratio = len(train_df) / len(df)
     val_ratio = len(val_df) / len(df)
     test_ratio = len(test_df) / len(df)
@@ -33,33 +68,57 @@ def calculate_split_score(df, train_df, val_df, test_df):
     size_error = abs(train_ratio - TRAIN_SIZE) + abs(test_ratio - TEST_SIZE) + abs(val_ratio - VAL_SIZE)
     total_bcs_distribution = (df['bcs'].value_counts(normalize=True).sort_index())
 
-    def bcs_error(split_df):
+    def bcs_error(split_df: pd.DataFrame) -> float:
         split_distribution = (
-            split_df['bcs'].value_counts(normalize=True).reindex(total_bcs_distribution.index, fill_value=0))
-        return np.abs(split_distribution - total_bcs_distribution).sum()
+            split_df['bcs'].value_counts(normalize=True).reindex(total_bcs_distribution.index, fill_value=0)
+        )
+        return float(np.abs(split_distribution - total_bcs_distribution).sum())
 
-    bcs_error = bcs_error(train_df) + bcs_error(val_df) + bcs_error(test_df)
-    return bcs_error + size_error
+    total_bcs_error = bcs_error(train_df) + bcs_error(val_df) + bcs_error(test_df)
+    return total_bcs_error + size_error
 
 
-def split_cows(df, cow_df, iterations):
+def split_cows(
+    df: pd.DataFrame,
+    cow_df: pd.DataFrame,
+    iterations: int
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Find optimal subject-level dataset split using stratified iterative random search.
+
+    Args:
+        df (pd.DataFrame): Complete dataset DataFrame.
+        cow_df (pd.DataFrame): Cow subject-level aggregated DataFrame.
+        iterations (int): Number of random split permutations to evaluate.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: Optimal (train_df, val_df, test_df) DataFrames.
+    """
     best_score = float('inf')
     best_split = None
 
     for iteration in range(iterations):
         random_state = RANDOM_STATE + iteration
 
-        train_cows, temp_cows = train_test_split(cow_df, test_size=VAL_SIZE + TEST_SIZE, random_state=random_state,
-                                                 stratify=cow_df['bcs'])
-        val_cows, test_cows = train_test_split(temp_cows, test_size=TEST_SIZE / (VAL_SIZE + TEST_SIZE),
-                                               stratify=temp_cows['bcs'], random_state=random_state)
+        train_cows, temp_cows = train_test_split(
+            cow_df,
+            test_size=VAL_SIZE + TEST_SIZE,
+            random_state=random_state,
+            stratify=cow_df['bcs']
+        )
+        val_cows, test_cows = train_test_split(
+            temp_cows,
+            test_size=TEST_SIZE / (VAL_SIZE + TEST_SIZE),
+            stratify=temp_cows['bcs'],
+            random_state=random_state
+        )
 
-        # finding ids in main df
+        # Retrieve unique subject IDs for each partition
         train_ids = set(train_cows['cow_group_id'])
         val_ids = set(val_cows['cow_group_id'])
         test_ids = set(test_cows['cow_group_id'])
 
-        # finding all images of cows in main df
+        # Filter complete image records for each partition
         train_df = df[df['cow_group_id'].isin(train_ids)]
         val_df = df[df['cow_group_id'].isin(val_ids)]
         test_df = df[df['cow_group_id'].isin(test_ids)]
@@ -75,7 +134,21 @@ def split_cows(df, cow_df, iterations):
     return best_split
 
 
-def show_split_information(df, train_df, val_df, test_df):
+def show_split_information(
+    df: pd.DataFrame,
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame
+) -> None:
+    """
+    Display comprehensive CLI statistical summary of dataset partitions.
+
+    Args:
+        df (pd.DataFrame): Complete dataset DataFrame.
+        train_df (pd.DataFrame): Training subset DataFrame.
+        val_df (pd.DataFrame): Validation subset DataFrame.
+        test_df (pd.DataFrame): Testing subset DataFrame.
+    """
     total_images = len(df)
 
     # Split ratios
@@ -114,31 +187,31 @@ def show_split_information(df, train_df, val_df, test_df):
     print('=' * 70)
 
     total_bcs = (
-            df['bcs']
-            .value_counts(normalize=True)
-            .sort_index()
-            * 100
+        df['bcs']
+        .value_counts(normalize=True)
+        .sort_index()
+        * 100
     )
 
     train_bcs = (
-            train_df['bcs']
-            .value_counts(normalize=True)
-            .reindex(total_bcs.index, fill_value=0)
-            * 100
+        train_df['bcs']
+        .value_counts(normalize=True)
+        .reindex(total_bcs.index, fill_value=0)
+        * 100
     )
 
     val_bcs = (
-            val_df['bcs']
-            .value_counts(normalize=True)
-            .reindex(total_bcs.index, fill_value=0)
-            * 100
+        val_df['bcs']
+        .value_counts(normalize=True)
+        .reindex(total_bcs.index, fill_value=0)
+        * 100
     )
 
     test_bcs = (
-            test_df['bcs']
-            .value_counts(normalize=True)
-            .reindex(total_bcs.index, fill_value=0)
-            * 100
+        test_df['bcs']
+        .value_counts(normalize=True)
+        .reindex(total_bcs.index, fill_value=0)
+        * 100
     )
 
     bcs_table = pd.DataFrame({
@@ -179,7 +252,21 @@ def show_split_information(df, train_df, val_df, test_df):
     print(f'Validation ∩ Test:  {len(val_test_overlap)}')
 
 
-def plot_bcs_distribution_comparison(df, train_df, val_df, test_df):
+def plot_bcs_distribution_comparison(
+    df: pd.DataFrame,
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame
+) -> None:
+    """
+    Plot bar chart comparing BCS percentage distributions across partitions.
+
+    Args:
+        df (pd.DataFrame): Complete dataset DataFrame.
+        train_df (pd.DataFrame): Training subset DataFrame.
+        val_df (pd.DataFrame): Validation subset DataFrame.
+        test_df (pd.DataFrame): Testing subset DataFrame.
+    """
     bcs_order = sorted(df['bcs'].unique())
 
     distributions = {}
@@ -193,10 +280,10 @@ def plot_bcs_distribution_comparison(df, train_df, val_df, test_df):
 
     for name, split_df in datasets.items():
         distribution = (
-                split_df['bcs']
-                .value_counts(normalize=True)
-                .reindex(bcs_order, fill_value=0)
-                * 100
+            split_df['bcs']
+            .value_counts(normalize=True)
+            .reindex(bcs_order, fill_value=0)
+            * 100
         )
 
         distributions[name] = distribution
@@ -226,7 +313,19 @@ def plot_bcs_distribution_comparison(df, train_df, val_df, test_df):
     plt.show()
 
 
-def save_splits(train_df, val_df, test_df):
+def save_splits(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    test_df: pd.DataFrame
+) -> None:
+    """
+    Save train, validation, and test partition DataFrames as CSV files.
+
+    Args:
+        train_df (pd.DataFrame): Training subset DataFrame.
+        val_df (pd.DataFrame): Validation subset DataFrame.
+        test_df (pd.DataFrame): Testing subset DataFrame.
+    """
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     train_df.to_csv(os.path.join(OUTPUT_DIR, 'train.csv'), index=False)
@@ -234,7 +333,6 @@ def save_splits(train_df, val_df, test_df):
     test_df.to_csv(os.path.join(OUTPUT_DIR, 'test.csv'), index=False)
 
     print('splits saved')
-
 
 
 if __name__ == '__main__':

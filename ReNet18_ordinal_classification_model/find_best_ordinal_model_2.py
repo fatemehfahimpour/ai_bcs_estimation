@@ -1,37 +1,63 @@
+"""
+Round 2 Hyperparameter Tuning and Grid Search for Ordinal ResNet18.
+
+Focuses on deeper trainable layer configurations, refined learning rate grids,
+and backbone differential learning rate scaling. Evaluates candidate models,
+generates comparison plots, and saves checkpoints and summary JSON reports.
+"""
+
 import json
 import os
+from typing import Any, Dict, List, Optional, Tuple
+
 import matplotlib.pyplot as plt
 import torch
+from torch.utils.data import DataLoader
 
+from ReNet18_ordinal_classification_model.ordinal_dataset_dataloader import get_ordinal_data_loader
 from ReNet18_ordinal_classification_model.ordinal_model import OrdinalResNet18
 from ReNet18_ordinal_classification_model.ordinal_trainer import OrdinalTrainer
-from ReNet18_ordinal_classification_model.ordinal_dataset_dataloader import get_ordinal_data_loader
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-TRAIN_CSV = "../meta_data/splits/train.csv"
-VAL_CSV = "../meta_data/splits/val.csv"
+TRAIN_CSV: str = "../meta_data/splits/train.csv"
+VAL_CSV: str = "../meta_data/splits/val.csv"
 
-# مسیرهای ذخیره‌سازی دور دوم
-MODEL_PATH = "model_results_round2/best_ordinal_resnet18.pth"
-RESULT_PATH = "model_results_round2/ordinal_training_result_2.json"
-PLOTS_DIR = "model_results_round2/plots"
+# Round 2 storage paths
+MODEL_PATH: str = "model_results_round2/best_ordinal_resnet18.pth"
+RESULT_PATH: str = "model_results_round2/ordinal_training_result_2.json"
+PLOTS_DIR: str = "model_results_round2/plots"
 
-EPOCHS = 100
-PATIENCE = 20
-MIN_DELTA = 0.001
-BACKBONE_LR_RATIO = 0.1  # <-- اضافه شد
+EPOCHS: int = 100
+PATIENCE: int = 20
+MIN_DELTA: float = 0.001
+BACKBONE_LR_RATIO: float = 0.1  # Backbone learning rate scaling factor
 
 # ============================================================
-# هایپرپارامترهای بهینه‌شده برای دور دوم (تمرکز بر لایه‌های عمیق‌تر و LR دقیق‌تر)
+# Optimized hyperparameters for Round 2 (focusing on deeper layers and refined LRs)
 # ============================================================
-TRAINABLE_LAYERS = ["layer4_fc","layer3_layer4_fc", "layer2_layer3_layer4_fc"]
-OPTIMIZERS = ["adam", "momentum"]
-ADAM_LRS = [5e-6, 1e-5, 3e-5]
-MOMENTUM_LRS = [3e-4, 1e-3, 3e-3]
+TRAINABLE_LAYERS: List[str] = ["layer4_fc", "layer3_layer4_fc", "layer2_layer3_layer4_fc"]
+OPTIMIZERS: List[str] = ["adam", "momentum"]
+ADAM_LRS: List[float] = [5e-6, 1e-5, 3e-5]
+MOMENTUM_LRS: List[float] = [3e-4, 1e-3, 3e-3]
 
 
-def plot_results(results, best_result, save_dir=PLOTS_DIR):
+def plot_results(
+    results: List[Dict[str, Any]],
+    best_result: Dict[str, Any],
+    save_dir: str = PLOTS_DIR,
+) -> None:
+    """
+    Generate and save evaluation plots for the best model and experiment comparisons.
+
+    Creates separate line plots for the best model's training and validation metrics
+    (Loss, Accuracy, MAE) over epochs, as well as comparison curves across all experiments.
+
+    Args:
+        results (List[Dict[str, Any]]): Metrics summary for each executed experiment.
+        best_result (Dict[str, Any]): Dictionary containing configuration and history of the best run.
+        save_dir (str): Directory where generated plot images are saved. Defaults to PLOTS_DIR.
+    """
     os.makedirs(save_dir, exist_ok=True)
 
     # ============================================================
@@ -85,7 +111,7 @@ def plot_results(results, best_result, save_dir=PLOTS_DIR):
     # ============================================================
     # Experiment labels
     # ============================================================
-    experiment_labels = []
+    experiment_labels: List[str] = []
     for i, result in enumerate(results):
         label = (
             f"{result['trainable_layers']}\n"
@@ -147,11 +173,32 @@ def plot_results(results, best_result, save_dir=PLOTS_DIR):
     print(f"\nAll plots saved to:\n{save_dir}")
 
 
-def search(train_loader, val_loader):
-    results = []
+def search(
+    train_loader: DataLoader,
+    val_loader: DataLoader,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """
+    Execute Round 2 grid search across fine-grained model and optimizer parameters.
 
-    best_result = None
-    best_model_state = None
+    Iterates through candidate layer depths and learning rates, enforces differential
+    backbone learning rates, records validation metrics, preserves GPU VRAM,
+    checkpoints the best configuration, and generates evaluation plots.
+
+    Args:
+        train_loader (DataLoader): DataLoader for the training dataset.
+        val_loader (DataLoader): DataLoader for the validation dataset.
+
+    Returns:
+        Tuple[List[Dict[str, Any]], Dict[str, Any]]: List of all experiment results
+            and the dictionary containing the optimal configuration.
+
+    Raises:
+        ValueError: If an unrecognized optimizer is specified.
+    """
+    results: List[Dict[str, Any]] = []
+
+    best_result: Optional[Dict[str, Any]] = None
+    best_model_state: Any = None
     best_val_loss = float("inf")
 
     total_experiments = len(TRAINABLE_LAYERS) * (len(ADAM_LRS) + len(MOMENTUM_LRS))
@@ -174,7 +221,7 @@ def search(train_loader, val_loader):
 
                 model = OrdinalResNet18(
                     trainable_layers=trainable_layers,
-                    num_thresholds=4
+                    num_thresholds=4,
                 )
                 model = model.to(DEVICE)
 
@@ -188,12 +235,12 @@ def search(train_loader, val_loader):
                     epochs=EPOCHS,
                     patience=PATIENCE,
                     min_delta=MIN_DELTA,
-                    backbone_lr_ratio = BACKBONE_LR_RATIO  # <-- اضافه شد
+                    backbone_lr_ratio=BACKBONE_LR_RATIO,  # Pass backbone scaling factor
                 )
 
                 result = trainer.fit()
 
-                experiment_result = {
+                experiment_result: Dict[str, Any] = {
                     "trainable_layers": trainable_layers,
                     "optimizer": optimizer,
                     "learning_rate": learning_rate,
@@ -204,26 +251,26 @@ def search(train_loader, val_loader):
                     "best_val_accuracy": result["best_val_accuracy"],
                     "best_train_mae": result["best_train_mae"],
                     "best_val_mae": result["best_val_mae"],
-                    "history": result["history"]
+                    "history": result["history"],
                 }
 
                 results.append(experiment_result)
 
-                # بررسی و به‌روزرسانی بهترین مدل
+                # Check and update the best model
                 if result["best_val_loss"] < best_val_loss:
                     best_val_loss = result["best_val_loss"]
                     best_result = experiment_result
                     best_model_state = result["best_model_state"]
 
-                # پاک‌سازی قطعی حافظه GPU در پایان هر آزمایش (جلوگیری از انباشتگی VRAM)
+                # Explicit GPU memory cleanup at the end of each experiment to avoid VRAM fragmentation
                 del model
                 del trainer
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-    # ذخیره وزن‌های بهترین مدل
+    # Save weights of the best performing model
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-    checkpoint = {
+    checkpoint: Dict[str, Any] = {
         "model_state_dict": best_model_state,
         "trainable_layers": best_result["trainable_layers"],
         "optimizer": best_result["optimizer"],
@@ -231,15 +278,15 @@ def search(train_loader, val_loader):
         "best_epoch": best_result["best_epoch"],
         "best_val_loss": best_result["best_val_loss"],
         "best_val_accuracy": best_result["best_val_accuracy"],
-        "best_val_mae": best_result["best_val_mae"]
+        "best_val_mae": best_result["best_val_mae"],
     }
 
     torch.save(checkpoint, MODEL_PATH)
 
-    # ذخیره فایل نتایج JSON
-    search_result = {
+    # Save results to a JSON file
+    search_result: Dict[str, Any] = {
         "best_result": best_result,
-        "all_results": results
+        "all_results": results,
     }
 
     with open(RESULT_PATH, "w") as f:
@@ -257,8 +304,8 @@ def search(train_loader, val_loader):
     print(f"\nResults saved to:\n{RESULT_PATH}")
     print("=" * 50 + "\n")
 
-    # رسم و ذخیره خودکار پلات‌ها در انتهای فرآیند جستجو
-    plot_results(results, best_result, save_dir=PLOTS_DIR)  # <-- به اینجا منتقل شد
+    # Plot and save curves at the end of search process
+    plot_results(results, best_result, save_dir=PLOTS_DIR)
 
     return results, best_result
 
@@ -267,5 +314,3 @@ if __name__ == "__main__":
     train_loader, val_loader, test_loader = get_ordinal_data_loader()
 
     results, best_result = search(train_loader, val_loader)
-
-

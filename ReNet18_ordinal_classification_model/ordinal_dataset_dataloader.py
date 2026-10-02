@@ -1,32 +1,78 @@
+"""
+Ordinal Dataset and DataLoader Module for Cow BCS Estimation.
+
+Defines custom PyTorch Dataset handling with cumulative binary ordinal encoding
+(K - 1 thresholds for K classes) and DataLoader constructors optimized with pin-memory,
+prefetching, and worker persistence.
+"""
+
 from pathlib import Path
+from typing import Any, Callable, Optional, Tuple
 
 import pandas as pd
 import torch
 from PIL import Image
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from data.preprocess import (
+    CLASS_MAPPING,
+    TEST_PATH,
     TRAIN_PATH,
     VAL_PATH,
-    TEST_PATH,
     get_train_transform,
     get_val_transform,
-    CLASS_MAPPING,
     resolve_image_path,
 )
 
 
 class OrdinalBCSDataset(Dataset):
+    """
+    PyTorch Dataset for Cow Body Condition Score (BCS) ordinal classification.
 
-    def __init__(self, dataframe, transform=None):
+    Maps discrete BCS target values into cumulative binary vectors of length (num_classes - 1).
+    """
+
+    def __init__(
+        self,
+        dataframe: pd.DataFrame,
+        transform: Optional[Callable[[Image.Image], torch.Tensor]] = None,
+    ) -> None:
+        """
+        Initialize the dataset.
+
+        Args:
+            dataframe (pd.DataFrame): Metadata dataframe containing image paths and BCS labels.
+            transform (Optional[Callable[[Image.Image], torch.Tensor]]): Image transformation pipeline.
+        """
         self.dataframe = dataframe.reset_index(drop=True)
         self.transform = transform
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """
+        Return the total number of samples in the dataset.
+
+        Returns:
+            int: Total sample count.
+        """
         return len(self.dataframe)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Fetch and process a sample by index.
 
+        Args:
+            index (int): Sample index.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                - Transformed image tensor.
+                - Ordinal target binary vector of shape (4,).
+                - Class index as a scalar long tensor.
+
+        Raises:
+            FileNotFoundError: If the image file cannot be found at the resolved path.
+            ValueError: If the BCS label is not recognized in CLASS_MAPPING.
+        """
         row = self.dataframe.iloc[index]
 
         image_path = resolve_image_path(str(row["path"]))
@@ -52,13 +98,9 @@ class OrdinalBCSDataset(Dataset):
         class_index = CLASS_MAPPING[bcs]
 
         # -----------------------------------------
-        # Ordinal target
+        # Build cumulative binary ordinal target
         # -----------------------------------------
-
-        ordinal_target = torch.zeros(
-            4,
-            dtype=torch.float32
-        )
+        ordinal_target = torch.zeros(4, dtype=torch.float32)
 
         if class_index > 0:
             ordinal_target[0] = 1
@@ -75,39 +117,49 @@ class OrdinalBCSDataset(Dataset):
         return (
             image,
             ordinal_target,
-            torch.tensor(class_index, dtype=torch.long)
+            torch.tensor(class_index, dtype=torch.long),
         )
 
 
 def get_ordinal_data_loader(
-        batch_size=128,
-        num_workers=6
-):
+    batch_size: int = 128,
+    num_workers: int = 6,
+) -> Tuple[DataLoader, DataLoader, DataLoader]:
+    """
+    Construct optimized PyTorch DataLoaders for train, validation, and test splits.
+
+    Args:
+        batch_size (int): Mini-batch size for DataLoader instances. Default is 128.
+        num_workers (int): Number of subprocess workers for parallel data loading. Default is 6.
+
+    Returns:
+        Tuple[DataLoader, DataLoader, DataLoader]: Train, validation, and test DataLoader objects.
+    """
     train_df = pd.read_csv(TRAIN_PATH)
     val_df = pd.read_csv(VAL_PATH)
     test_df = pd.read_csv(TEST_PATH)
 
-    # استفاده از همان preprocessing اصلی
+    # Use standard training and validation transformations
     train_dataset = OrdinalBCSDataset(
         train_df,
-        transform=get_train_transform()
+        transform=get_train_transform(),
     )
 
     val_dataset = OrdinalBCSDataset(
         val_df,
-        transform=get_val_transform()
+        transform=get_val_transform(),
     )
 
     test_dataset = OrdinalBCSDataset(
         test_df,
-        transform=get_val_transform()
+        transform=get_val_transform(),
     )
 
     use_cuda = torch.cuda.is_available()
 
-    loader_kwargs = {
+    loader_kwargs: dict[str, Any] = {
         "pin_memory": use_cuda,
-        "num_workers": num_workers
+        "num_workers": num_workers,
     }
 
     if num_workers > 0:
@@ -118,21 +170,21 @@ def get_ordinal_data_loader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        **loader_kwargs
+        **loader_kwargs,
     )
 
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        **loader_kwargs
+        **loader_kwargs,
     )
 
     test_loader = DataLoader(
         test_dataset,
         batch_size=batch_size,
         shuffle=False,
-        **loader_kwargs
+        **loader_kwargs,
     )
 
     return train_loader, val_loader, test_loader

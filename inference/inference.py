@@ -1,7 +1,8 @@
-"""Two-Stage Inference Engine for Cow Body Condition Score (BCS) Estimation.
+"""
+Two-Stage Inference Engine for Cow Body Condition Score (BCS) Estimation.
 
-Stage 1: Detects the anatomical region of the cow using YOLO11m.
-Stage 2: Crops the region and predicts the BCS score using OrdinalResNet18.
+Stage 1: Detects anatomical regions of interest on cows using a YOLO11m object detector.
+Stage 2: Crops the detected region and predicts ordinal BCS scores via OrdinalResNet18.
 """
 
 from pathlib import Path
@@ -29,7 +30,9 @@ except ImportError:
 
 
 class BCSInferenceEngine:
-    """End-to-end Two-Stage BCS Inference Engine (Ordinal Version)."""
+    """
+    End-to-end Two-Stage BCS Inference Engine utilizing Ordinal Classification.
+    """
 
     def __init__(
         self,
@@ -37,9 +40,15 @@ class BCSInferenceEngine:
         detector_weights: Optional[Union[str, Path]] = PROJECT_ROOT / "anatomical_region_ditector" / "runs" / "detect" / "anatomical_region_yolo11m" / "weights" / "best.pt",
         device: Optional[str] = None,
     ) -> None:
-        """Initialize models, devices, and preprocessing transforms."""
+        """
+        Initialize compute hardware, load weights, and instantiate models.
 
-        # Device
+        Args:
+            classifier_weights (Union[str, Path]): Path to trained OrdinalResNet18 checkpoint.
+            detector_weights (Optional[Union[str, Path]]): Path to YOLO detector weights.
+            device (Optional[str]): Explicit target compute device (e.g., 'cuda', 'cpu').
+        """
+        # Hardware target selection
         if device is None:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
@@ -62,8 +71,15 @@ class BCSInferenceEngine:
                 self.detector = YOLO(str(self.detector_path))
 
     def _load_classifier(self) -> OrdinalResNet18:
-        """Load trained OrdinalResNet18 classifier state dict."""
+        """
+        Load and instantiate the OrdinalResNet18 classifier from checkpoint state dict.
 
+        Returns:
+            OrdinalResNet18: Loaded model placed on the designated compute device in eval mode.
+
+        Raises:
+            FileNotFoundError: If the checkpoint file does not exist.
+        """
         if not self.classifier_path.exists():
             raise FileNotFoundError(
                 f"[!] Ordinal Classifier checkpoint not found at: {self.classifier_path.resolve()}"
@@ -104,8 +120,22 @@ class BCSInferenceEngine:
         self,
         crop_image: Union[str, Path, Image.Image],
     ) -> Tuple[float, float, Dict[str, float]]:
-        """Run Ordinal BCS classification on an already cropped anatomical image."""
+        """
+        Run Ordinal BCS classification on an already cropped anatomical image.
 
+        Args:
+            crop_image (Union[str, Path, Image.Image]): Cropped image file path or PIL Image object.
+
+        Returns:
+            Tuple[float, float, Dict[str, float]]:
+                - predicted_bcs (float): Discrete predicted BCS value.
+                - certainty (float): Average threshold confidence percentage (0-100%).
+                - threshold_details (Dict[str, float]): Sigmoid probabilities for each cumulative threshold.
+
+        Raises:
+            FileNotFoundError: If the provided image path does not exist.
+            TypeError: If input is neither a path nor a PIL Image.
+        """
         # Load image
         if isinstance(crop_image, (str, Path)):
             p = Path(crop_image)
@@ -126,14 +156,12 @@ class BCSInferenceEngine:
         # Transform image
         tensor = self.transform(pil_image).unsqueeze(0).to(self.device)
 
-        # Forward pass
-        # Ordinal outputs logits for 4 binary thresholds
+        # Forward pass: Ordinal outputs logits for 4 binary thresholds
         logits = self.classifier(tensor)
 
         probs = torch.sigmoid(logits).squeeze(0)
 
-        # Standard ordinal prediction
-        # Number of thresholds passed -> class index 0 to 4
+        # Standard ordinal prediction: number of thresholds passed -> class index 0 to 4
         predicted_idx = int((probs > 0.5).sum().item())
 
         predicted_bcs = INDEX_TO_BCS.get(
@@ -166,8 +194,22 @@ class BCSInferenceEngine:
         full_image: Union[str, Path, Image.Image],
         conf_threshold: float = 0.35,
     ) -> Dict[str, Any]:
-        """Full Two-Stage Pipeline: Detect anatomical bbox -> Crop -> Predict BCS."""
+        """
+        Execute full two-stage pipeline: Detect anatomical bbox -> Crop -> Predict BCS.
 
+        Args:
+            full_image (Union[str, Path, Image.Image]): Original full image path or PIL Image object.
+            conf_threshold (float): Confidence threshold for YOLO bounding box detection.
+
+        Returns:
+            Dict[str, Any]: Results dictionary containing detection status, bbox coords,
+                cropped image, predicted BCS score, certainty score, and threshold probabilities.
+
+        Raises:
+            RuntimeError: If YOLO detector is not initialized.
+            FileNotFoundError: If the input file path does not exist.
+            TypeError: If input is neither a path nor a PIL Image.
+        """
         if self.detector is None:
             raise RuntimeError(
                 "YOLO detector is not initialized. "
@@ -200,7 +242,7 @@ class BCSInferenceEngine:
 
         boxes = det_results[0].boxes
 
-        # No detection -> use full image
+        # No detection fallback -> use full image
         if len(boxes) == 0:
             predicted_bcs, conf, probs = self.predict_crop(pil_full)
 
